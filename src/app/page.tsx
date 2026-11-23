@@ -43,26 +43,27 @@ function Brand({ compact = false }: { compact?: boolean }) {
 }
 
 function CacheDiagram() {
-  const blocks = Array.from({ length: 32 }, (_, index) => index);
   return (
-    <div className="cache-visual" aria-label="Illustration of a paged key-value cache">
-      <div className="cache-orbit orbit-one" />
-      <div className="cache-orbit orbit-two" />
-      <div className="cache-crosshair crosshair-a" />
-      <div className="cache-crosshair crosshair-b" />
-      <div className="cache-label label-top"><span className="signal-dot" />KV CACHE / LIVE MAP</div>
-      <div className="cache-center">
-        <div className="cache-center-icon"><Layers3 size={27} strokeWidth={1.5} /></div>
-        <span>BLOCK TABLE</span>
-        <small>GPU MEMORY · 8 GB</small>
+    <div className="cache-visual" aria-label="Animated three-dimensional illustration of transformer inference layers">
+      <div className="cache-label label-top"><span className="signal-dot" />TRANSFORMER / LAYER 07</div>
+      <div className="scene-shadow" />
+      <div className="scene-orbit orbit-one" />
+      <div className="scene-orbit orbit-two" />
+      <div className="scene-orbit orbit-three" />
+      <div className="engine-stack" aria-hidden="true">
+        <div className="stack-layer layer-back"><i /><i /><i /><i /><i /><i /><i /><i /><b>ATTENTION</b></div>
+        <div className="stack-layer layer-mid"><i /><i /><i /><i /><i /><i /><i /><i /><b>KV CACHE</b></div>
+        <div className="stack-layer layer-front"><i /><i /><i /><i /><i /><i /><i /><i /><b>FEED FORWARD</b></div>
+        <div className="engine-cube">
+          <span className="cube-face cube-front"><Layers3 size={30} strokeWidth={1.35} /><small>INFERENCE</small></span>
+          <span className="cube-face cube-top" />
+          <span className="cube-face cube-side" />
+        </div>
       </div>
-      <div className="cache-blocks" aria-hidden="true">
-        {blocks.map((block) => <span key={block} className={`cache-block block-${block % 8}`} />)}
-      </div>
-      <div className="cache-label label-left"><span className="label-line" />PREFILL</div>
-      <div className="cache-label label-right">DECODE<span className="label-line" /></div>
-      <div className="cache-readout"><span>ALLOCATED</span><b>BLOCK <i>07</i></b><small>seq_0042 · token 128</small></div>
-      <div className="cache-coordinate">32.0 GB RAM <span>/</span> 8.0 GB VRAM</div>
+      <div className="float-chip chip-token"><span>TOKEN</span><b>128</b><i /></div>
+      <div className="float-chip chip-memory"><span>KV BLOCK</span><b>07 <i>●</i></b></div>
+      <div className="float-chip chip-latency"><span>STEP</span><b>DECODE</b></div>
+      <div className="cache-coordinate">PREFILL <span>→</span> DECODE <span>→</span> NEXT TOKEN</div>
     </div>
   );
 }

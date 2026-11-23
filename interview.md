@@ -26,6 +26,10 @@ The core project is about inference systems, so pretrained weights provide a pra
 
 The RTX 3050’s 8 GB of VRAM makes memory budgeting a relevant design concern. The engine will need to account for model weights, KV cache, and runtime allocations. The constraint motivates experiments; it does not by itself prove an optimization or performance advantage.
 
+### Why redesign the landing page with a 3D animation?
+
+The animated transformer stack is built with CSS 3D transforms, rather than a static screenshot. Its layers suggest the sequence of operations in an inference engine, while the token and KV block labels connect the visual to the project. The paper, cobalt, and orange palette makes the project read like a technical research notebook. Motion is decorative and respects the user's reduced-motion preference; the underlying explanation remains readable without it.
+
 ### How will the project be evaluated?
 
 First establish correctness against Hugging Face. Then evaluate cache correctness, resource cleanup, and serving behavior. For performance comparisons, use documented matching models and workloads and report TTFT, inter-token latency, tokens per second, latency percentiles, peak memory, and output quality where relevant.
