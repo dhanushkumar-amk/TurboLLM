@@ -28,7 +28,11 @@ The RTX 3050’s 8 GB of VRAM makes memory budgeting a relevant design concern. 
 
 ### Why redesign the landing page with a 3D animation?
 
-The animated transformer stack is built with CSS 3D transforms, rather than a static screenshot. Its layers suggest the sequence of operations in an inference engine, while the token and KV block labels connect the visual to the project. The paper, cobalt, and orange palette makes the project read like a technical research notebook. Motion is decorative and respects the user's reduced-motion preference; the underlying explanation remains readable without it.
+The inference concept uses CSS 3D animation rather than a static screenshot. Its moving cache cube suggests memory and transformer state. Motion is decorative and respects the user's reduced-motion preference; the underlying explanation remains readable without it.
+
+### What visual reference informed the landing page?
+
+The supplied recording showed a bright SaaS landing page with a centered hero, strong whitespace, a product UI preview, feature sections, and a darker developer resources section. TurboLLM borrows that presentation structure and the lime/lavender contrast, while using its own copy and a clearly labeled illustrative inference UI. The dashboard is a design concept, not a claim that those engine controls already exist.
 
 ### How will the project be evaluated?
 
@@ -37,3 +41,7 @@ First establish correctness against Hugging Face. Then evaluate cache correctnes
 ### Current status
 
 The PRD, 50-phase plan, and project landing page are in place. Core model execution, cache management, batching, serving, and benchmark results remain future implementation work.
+
+### How does the current landing page render its sculpture?
+
+The hero draws a rotating tube around a mathematical knot. The browser projects its mesh onto a canvas and paints the distant faces first. A pause control and reduced-motion support keep the illustration usable at rest. The architecture explorer explains prefill, decode, and scheduling.
