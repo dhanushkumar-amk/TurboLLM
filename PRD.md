@@ -2,7 +2,17 @@
 
 **Status:** Draft  
 **Owner:** Project team  
-**Last updated:** 2026-11-23
+**Last updated:** 2026-11-24
+
+### Initial model baseline
+
+- **Repository:** `Qwen/Qwen2.5-0.5B-Instruct`
+- **Architecture:** Qwen2 causal language model, 0.49B parameters, 24 layers, RMSNorm, RoPE, SwiGLU, and GQA with 14 query heads and 2 KV heads.
+- **License:** Apache-2.0, as listed on the Hugging Face model page. Review and retain the model license when distributing model files or derivatives.
+- **Checkpoint:** Safetensors. Hugging Face lists the model weight file at about 988 MB. The tokenizer files are separate.
+- **Purpose:** First implementation and correctness target for TurboLLM. Use its instruct tokenizer/chat template and compare logits with Hugging Face.
+- **Reproducibility:** Resolve and record an immutable Hugging Face revision before downloading weights for a baseline run. Do not rely on a moving `main` reference in benchmark records.
+- **Hardware fit:** The weight file fits within the PC's 8 GB VRAM in isolation. Actual runtime fit depends on dtype, framework overhead, activations, and KV cache, so measure before setting context or batch limits.
 
 ## 1. Overview
 

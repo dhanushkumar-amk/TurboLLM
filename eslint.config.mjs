@@ -10,6 +10,7 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     "**/.next/**",
     "**/node_modules/**",
+    "**/.venv/**",
     "turbolllm-web/**",
     "out/**",
     "build/**",

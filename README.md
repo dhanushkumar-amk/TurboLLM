@@ -36,3 +36,7 @@ npm run build
 - NVIDIA GeForce RTX 3050 with 8 GB VRAM
 
 These are development constraints, not benchmark claims. Performance targets will be set after a model and workload baseline are selected.
+
+## Initial model
+
+The first planned reference model is [`Qwen/Qwen2.5-0.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct). Its architecture exercises the RMSNorm, RoPE, SwiGLU, and GQA components in the roadmap. Record a pinned model revision before downloading weights or publishing benchmark results.

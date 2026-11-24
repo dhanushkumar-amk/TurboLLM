@@ -46,6 +46,22 @@ The PRD, 50-phase plan, and project landing page are in place. Core model execut
 
 The target PC has a Ryzen 7 5800X, 32 GB system RAM, and an RTX 3050 with 8 GB VRAM. The NVIDIA driver sees the GPU, but PyTorch is not installed in the active Python environment yet. The machine currently reports Python 3.15.2, so the next setup step is to check PyTorch's supported Python versions and create a compatible project virtual environment. See [environment.md](environment.md) for the captured versions and the Windows product-name discrepancy.
 
+### Why start with Qwen2.5-0.5B-Instruct?
+
+It is small enough to make the first end-to-end reference practical on an 8 GB GPU, while exposing the architecture components the project needs to implement: RMSNorm, RoPE, SwiGLU, and grouped-query attention. The Hugging Face model card lists 0.49B parameters, 24 layers, and an Apache-2.0 license. I will pin a checkpoint revision and validate outputs against Hugging Face before using it for performance claims.
+
 ### How does the current landing page render its sculpture?
 
 The hero draws a rotating tube around a mathematical knot. The browser projects its mesh onto a canvas and paints the distant faces first. A pause control and reduced-motion support keep the illustration usable at rest. The architecture explorer explains prefill, decode, and scheduling.
+
+### What does the feature-card section explain?
+
+The section organizes TurboLLM's engineering questions into five themes: tracing inference, budgeting GPU memory, checking logits against Hugging Face, measuring performance tradeoffs, and studying shared request serving. Its diagrams are illustrative. The section describes work planned for the project and does not imply those engine capabilities are already implemented.
+
+### How do the interactive landing-page demos work?
+
+The memory lab estimates KV-cache size from a demo configuration of 24 layers, 2 KV heads, 64 dimensions, and FP16 key/value tensors. Sliders change context length and active request count. The request scheduler animates synthetic request lanes, and the scroll story uses gentle parallax to explain prompt input, cached context, and token output. These are explanatory frontend demos, not measurements from the inference engine; the displayed memory estimate excludes runtime workspaces and allocator overhead.
+
+### What does the interactive trace show?
+
+The trace replays a synthetic request across tokenization, prefill, KV-cache allocation, decode, token streaming, and cache release. Its timeline can be scrubbed, played, paused, and inspected by selecting spans. The timing and token counts are demo values, clearly labeled as such; they are not captured from a running TurboLLM engine.
