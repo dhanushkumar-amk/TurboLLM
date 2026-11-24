@@ -40,3 +40,14 @@ These are development constraints, not benchmark claims. Performance targets wil
 ## Initial model
 
 The first planned reference model is [`Qwen/Qwen2.5-0.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct). Its architecture exercises the RMSNorm, RoPE, SwiGLU, and GQA components in the roadmap. Record a pinned model revision before downloading weights or publishing benchmark results.
+
+## PyTorch reference run
+
+The ML dependencies are kept separate from the Next.js app dependencies. In PowerShell, create or activate `.venv`, then install and run:
+
+```powershell
+python -m pip install -r requirements-ml.txt
+python scripts/reference_run.py
+```
+
+The runner pins model revision `7ae557604adf67be50417f59c2c2f167def9a775`, uses FP16 on CUDA, and asks for at most 48 new tokens. Hugging Face downloads the weights to its local cache. The printed load time, generation time, generated-token count, and peak allocated VRAM are a smoke-test baseline; repeat runs and control other GPU workloads before treating timing as a benchmark.
