@@ -79,4 +79,13 @@ Grouped-query causal attention is implemented in `turbo_llm/layers/attention.py`
 python scripts/verify_attention.py
 ```
 
-The comparison feeds Q/K/V projected from a small hidden-state batch through both the TurboLLM implementation and Qwen's eager attention, including RoPE and a causal mask. The next component is SwiGLU.
+The comparison feeds Q/K/V projected from a small hidden-state batch through both the TurboLLM implementation and Qwen's eager attention, including RoPE and a causal mask.
+
+SwiGLU, the residual decoder layer, checkpoint loading, and the full Qwen forward pass are implemented in `turbo_llm`. Verify the MLP and full logits with:
+
+```powershell
+python scripts/verify_swiglu.py
+python scripts/verify_model.py
+```
+
+The model verifier uses FP32 and eager reference attention to isolate forward-pass correctness from half-precision accumulation differences. On the reference GPU run, the checked logits matched exactly. The next milestone is autoregressive generation and KV-cache behavior.

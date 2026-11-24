@@ -35,9 +35,9 @@ You do not need to master every topic before coding. We can move through this li
 - [ ] Attention scores and scaled dot-product attention
 - [x] Rotary positional embeddings (RoPE) — implemented and compared with the Qwen reference; deeper matrix explanation can be studied when you want
 - [x] Grouped-query attention (GQA): query heads share key/value heads — implemented and compared with Qwen's eager attention
-- [ ] Feed-forward networks and the SwiGLU activation
-- [ ] How one decoder block combines these pieces
-- [ ] How weights in a checkpoint map to operations in code
+- [x] Feed-forward networks and the SwiGLU activation — implemented and compared with Qwen
+- [x] How one decoder block combines these pieces — implemented as a pre-norm residual decoder layer
+- [x] How weights in a checkpoint map to operations in code — matching Qwen state-dict structure loads into TurboLLM
 
 **Goal:** understand the operations needed to reproduce Qwen2.5-0.5B-Instruct's forward pass.
 

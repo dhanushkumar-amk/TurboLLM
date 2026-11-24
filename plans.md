@@ -18,13 +18,13 @@
 16. Verify RoPE against reference
 17. Implement grouped-query attention
 18. Verify attention against reference
-19. Implement SwiGLU
-20. Verify SwiGLU against reference
-21. Implement decoder layer
-22. Verify decoder layer against reference
-23. Implement full transformer forward pass
-24. Verify final logits against Hugging Face
-25. Implement model weight loading
+19. [x] Implement SwiGLU
+20. [x] Verify SwiGLU against reference
+21. [x] Implement decoder layer
+22. [x] Verify decoder layer against reference (full-model logits check)
+23. [x] Implement full transformer forward pass
+24. [x] Verify final logits against Hugging Face
+25. [x] Implement model weight loading
 26. Implement tokenizer integration
 27. Implement chat template handling
 28. Implement greedy decoding
