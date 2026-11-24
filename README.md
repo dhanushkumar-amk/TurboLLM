@@ -51,3 +51,15 @@ python scripts/reference_run.py
 ```
 
 The runner pins model revision `7ae557604adf67be50417f59c2c2f167def9a775`, uses FP16 on CUDA, and asks for at most 48 new tokens. Hugging Face downloads the weights to its local cache. The printed load time, generation time, generated-token count, and peak allocated VRAM are a smoke-test baseline; repeat runs and control other GPU workloads before treating timing as a benchmark.
+
+## Core implementation progress
+
+The `turbo_llm` Python package starts the inference implementation. `ModelShape` records the pinned Qwen model dimensions and derives the 64-wide attention head and 7 query heads per KV head. `RMSNorm` implements the Qwen2 normalization formula in FP32 intermediate precision and returns the original activation dtype.
+
+Verify the first layer against the pinned Hugging Face checkpoint with:
+
+```powershell
+python scripts/verify_rms_norm.py
+```
+
+The comparison copies the checkpoint's first input RMSNorm weights and checks a small FP16 CUDA input. The next planned component is RoPE, followed by GQA attention and SwiGLU.
