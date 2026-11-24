@@ -52,18 +52,32 @@ class QwenModel(nn.Module):
         self,
         input_ids: torch.Tensor,
         past_key_values: tuple[tuple[torch.Tensor, torch.Tensor], ...] | None = None,
+        attention_mask: torch.Tensor | None = None,
+        position_ids: torch.Tensor | None = None,
     ) -> ModelOutput:
         if input_ids.ndim != 2:
             raise ValueError("input_ids must have shape (batch, sequence)")
         past_length = 0 if past_key_values is None else past_key_values[0][0].shape[2]
-        position_ids = torch.arange(
-            past_length, past_length + input_ids.shape[1], device=input_ids.device
-        ).expand(input_ids.shape[0], -1)
+        if attention_mask is not None and attention_mask.shape != (
+            input_ids.shape[0], past_length + input_ids.shape[1]
+        ):
+            raise ValueError("attention_mask must cover cached and current sequence positions")
+        if position_ids is None:
+            if attention_mask is not None and past_length == 0:
+                position_ids = attention_mask.long().cumsum(-1).sub(1).clamp_min(0)
+            else:
+                position_ids = torch.arange(
+                    past_length, past_length + input_ids.shape[1], device=input_ids.device
+                ).expand(input_ids.shape[0], -1)
+        elif position_ids.shape != input_ids.shape:
+            raise ValueError("position_ids must have the same shape as input_ids")
         hidden_states = self.model.embed_tokens(input_ids)
         next_cache = []
         for index, layer in enumerate(self.model.layers):
             past = None if past_key_values is None else past_key_values[index]
-            hidden_states, layer_cache = layer(hidden_states, position_ids, past)
+            hidden_states, layer_cache = layer(
+                hidden_states, position_ids, attention_mask, past
+            )
             next_cache.append(layer_cache)
         hidden_states = self.model.norm(hidden_states)
         logits = self.lm_head(hidden_states)

@@ -29,12 +29,20 @@ def main() -> None:
     with torch.inference_mode():
         expected = reference(input_ids).logits
         actual = custom(input_ids).logits
+        pad_id = 151643
+        padded_ids = torch.cat((torch.full_like(input_ids[:, :1], pad_id), input_ids), dim=1)
+        padded_mask = torch.cat((torch.zeros_like(input_ids[:, :1]), torch.ones_like(input_ids)), dim=1)
+        padded_positions = padded_mask.long().cumsum(-1).sub(1).clamp_min(0)
+        padded_actual = custom(
+            padded_ids, attention_mask=padded_mask, position_ids=padded_positions
+        ).logits[:, -input_ids.shape[1]:]
     difference = (actual.float() - expected.float()).abs()
     print(f"Device: {device}; dtype: {dtype}")
     print(f"Logits shape: {tuple(actual.shape)}")
     print(f"Max absolute error: {difference.max().item():.8g}")
     print(f"Mean absolute error: {difference.mean().item():.8g}")
     torch.testing.assert_close(actual, expected, rtol=2e-4, atol=2e-4)
+    torch.testing.assert_close(padded_actual, actual, rtol=2e-4, atol=2e-4)
     print("Full model logits match the Hugging Face reference within tolerance.")
 
 

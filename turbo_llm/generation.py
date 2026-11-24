@@ -33,24 +33,37 @@ def generate_token_stream(
     temperature: float = 0.0,
     top_k: int = 0,
     top_p: float = 1.0,
+    repetition_penalty: float = 1.0,
     seed: int | None = None,
 ):
     """Yield token IDs incrementally, retaining per-layer KV state."""
     if input_ids.ndim != 2 or input_ids.shape[1] == 0:
         raise ValueError("input_ids must be a non-empty (batch, sequence) tensor")
+    if max_new_tokens < 0:
+        raise ValueError("max_new_tokens cannot be negative")
+    if input_ids.shape[1] + max_new_tokens > model.config.max_position_embeddings:
+        raise ValueError("prompt plus generated tokens exceeds model context length")
     generator = None
     if seed is not None:
         generator = torch.Generator(device=input_ids.device).manual_seed(seed)
+    sequences = input_ids
     output = model(input_ids)
     cache = output.past_key_values
     logits = output.logits[:, -1, :]
     for _ in range(max_new_tokens):
         token = sample_next_token(
-            logits, temperature=temperature, top_k=top_k, top_p=top_p, generator=generator
+            logits,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
+            previous_tokens=sequences,
+            generator=generator,
         )
         yield token
         if eos_token_id is not None and bool((token == eos_token_id).all()):
             break
+        sequences = torch.cat((sequences, token), dim=1)
         output = model(token, cache)
         cache, logits = output.past_key_values, output.logits[:, -1, :]
 
@@ -65,6 +78,7 @@ def generate(
     temperature: float = 0.0,
     top_k: int = 0,
     top_p: float = 1.0,
+    repetition_penalty: float = 1.0,
     use_cache: bool = True,
     seed: int | None = None,
 ) -> GenerationResult:
@@ -90,7 +104,13 @@ def generate(
     generated = 0
     for _ in range(max_new_tokens):
         next_token = sample_next_token(
-            logits, temperature=temperature, top_k=top_k, top_p=top_p, generator=generator
+            logits,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
+            previous_tokens=result,
+            generator=generator,
         )
         if eos_token_id is not None:
             next_token = torch.where(finished[:, None], eos_token_id, next_token)

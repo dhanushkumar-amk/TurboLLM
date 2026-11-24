@@ -56,6 +56,12 @@ class CoreTests(unittest.TestCase):
         logits = torch.tensor([[0.0, 3.0, 1.0]])
         self.assertEqual(sample_next_token(logits).item(), 1)
         self.assertEqual(sample_next_token(logits, temperature=0.7, top_k=1).item(), 1)
+        penalized = sample_next_token(
+            torch.tensor([[1.0, 1.1, -1.0]]),
+            previous_tokens=torch.tensor([[1]]),
+            repetition_penalty=2.0,
+        )
+        self.assertEqual(penalized.item(), 0)
         cache = PagedKVCache(1, 2, 1, 2, 2)
         cache.create_request("r")
         cache.append("r", torch.ones(1, 1, 2), torch.zeros(1, 1, 2))

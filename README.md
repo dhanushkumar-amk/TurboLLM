@@ -9,6 +9,9 @@ The first milestone is the project landing page and roadmap. Inference features 
 - [Product requirements](PRD.md)
 - [50-phase implementation plan](plans.md)
 - [Learning roadmap](learning.md)
+- [Architecture notes](architecture.md)
+- [Local benchmark notes](benchmarks/local-baseline.md)
+- [Reference generation record](benchmarks/reference-run.md)
 - [Interview notes](interview.md)
 - [Development hardware and software baseline](environment.md)
 
@@ -88,4 +91,34 @@ python scripts/verify_swiglu.py
 python scripts/verify_model.py
 ```
 
-The model verifier uses FP32 and eager reference attention to isolate forward-pass correctness from half-precision accumulation differences. On the reference GPU run, the checked logits matched exactly. The next milestone is autoregressive generation and KV-cache behavior.
+The model verifier uses FP32 and eager reference attention to isolate forward-pass correctness from half-precision accumulation differences. On the reference GPU run, the checked logits matched exactly.
+
+## Generation, cache, and serving
+
+Run the focused cache checks and all unit/API tests with:
+
+```powershell
+python scripts/verify_cache.py
+python -m unittest discover -s tests -v
+```
+
+The custom model supports greedy, temperature, top-k, top-p, and repetition-penalty sampling. KV cache size estimation, a contiguous decode cache, and a paged block allocator are included. `architecture.md` documents tensor layouts and current limitations.
+
+Start the local API after installing `requirements-ml.txt`:
+
+```powershell
+uvicorn turbo_llm.server:app --host 127.0.0.1 --port 8000
+```
+
+The server provides `/health`, `/metrics`, `/v1/chat/completions` (including SSE streaming), and `/batch` for equal-length static batches. Non-streaming chat requests use the prototype continuous scheduler, which batches live decode steps and can admit new requests at token boundaries. It currently recomputes padded histories each step instead of reusing each request's KV cache. Run `python scripts/smoke_server.py` to exercise the real pinned model through health, completion, and streaming routes.
+
+## Profiling and benchmarks
+
+```powershell
+python scripts/profile_inference.py --tokens 8
+python scripts/benchmark_attention.py --runs 5 --new-tokens 24
+python scripts/benchmark_reference.py --runs 5 --new-tokens 24 --dtype fp16
+python scripts/benchmark_reference.py --runs 5 --new-tokens 24 --dtype fp16 --cache off
+```
+
+The SDPA benchmark showed a preliminary latency improvement on the recorded short workload. The Transformers comparison remains slower for TurboLLM in the short sample. See [local benchmark notes](benchmarks/local-baseline.md); rerun on an idle GPU with longer workloads before drawing performance conclusions.

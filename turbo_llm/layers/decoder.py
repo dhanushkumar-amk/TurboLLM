@@ -49,6 +49,7 @@ class DecoderLayer(nn.Module):
         self,
         hidden_states: torch.Tensor,
         position_ids: torch.Tensor,
+        attention_mask: torch.Tensor | None = None,
         past_key_value: tuple[torch.Tensor, torch.Tensor] | None = None,
     ) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         batch, sequence, _ = hidden_states.shape
@@ -67,7 +68,7 @@ class DecoderLayer(nn.Module):
         if past_key_value is not None:
             key = torch.cat((past_key_value[0], key), dim=2)
             value = torch.cat((past_key_value[1], value), dim=2)
-        attention_output = self.attention(query, key, value)
+        attention_output = self.attention(query, key, value, attention_mask=attention_mask)
         attention_output = attention_output.reshape(batch, sequence, -1)
         hidden_states = residual + self.self_attn["o_proj"](attention_output)
         residual = hidden_states

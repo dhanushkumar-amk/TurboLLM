@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import unittest
 
 import torch
 from fastapi.testclient import TestClient
 
-from turbo_llm.server import Engine, create_app
+from turbo_llm.server import ChatCompletionRequest, ChatMessage, Engine, _stream_response, create_app
 
 
 class TinyOutput:
@@ -69,6 +70,29 @@ class ServerTests(unittest.TestCase):
             })
             self.assertEqual(stream.status_code, 200, stream.text)
             self.assertIn("data: [DONE]", stream.text)
+
+    def test_stream_cancellation_releases_request_slots(self):
+        async def run():
+            engine = Engine(TinyModel(), TinyTokenizer())
+            await engine.admission.acquire()
+            await engine.execution.acquire()
+            engine.active["cancel-me"] = "decode"
+            stream = _stream_response(
+                engine,
+                ChatCompletionRequest(
+                    messages=[ChatMessage(role="user", content="hello")], max_tokens=4
+                ),
+                torch.tensor([[1, 2]]),
+                "cancel-me",
+            )
+            first = await anext(stream)
+            self.assertIn("chat.completion.chunk", first)
+            await stream.aclose()
+            self.assertNotIn("cancel-me", engine.active)
+            self.assertTrue(engine.admission._value > 0)
+            self.assertTrue(engine.execution._value > 0)
+
+        asyncio.run(run())
 
 
 if __name__ == "__main__":

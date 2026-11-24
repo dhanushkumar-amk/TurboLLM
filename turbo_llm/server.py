@@ -19,6 +19,7 @@ from transformers import AutoTokenizer
 
 from turbo_llm.generation import generate, generate_token_stream
 from turbo_llm.model import MODEL_ID, MODEL_REVISION, QwenModel
+from turbo_llm.scheduler import ContinuousBatchScheduler
 
 
 @dataclass
@@ -29,14 +30,26 @@ class Engine:
     queue_limit: int = 16
     admission: asyncio.Semaphore = field(init=False)
     execution: asyncio.Semaphore = field(init=False)
+    scheduler: ContinuousBatchScheduler | None = field(init=False, default=None)
     active: dict[str, str] = field(default_factory=dict)
     requests_total: int = 0
     errors_total: int = 0
     elapsed_total: float = 0.0
 
     def __post_init__(self) -> None:
+        if self.max_concurrent <= 0 or self.queue_limit < 0:
+            raise ValueError("max_concurrent must be positive and queue_limit cannot be negative")
         self.admission = asyncio.Semaphore(self.max_concurrent + self.queue_limit)
         self.execution = asyncio.Semaphore(self.max_concurrent)
+        if isinstance(self.model, QwenModel):
+            pad_id = getattr(self.tokenizer, "pad_token_id", None) or 151643
+            self.scheduler = ContinuousBatchScheduler(
+                self.model,
+                pad_token_id=pad_id,
+                max_batch_size=max(1, min(8, self.max_concurrent + self.queue_limit)),
+                queue_limit=max(1, self.max_concurrent + self.queue_limit),
+                execution_semaphore=self.execution,
+            )
 
 
 class ChatMessage(BaseModel):
@@ -51,6 +64,7 @@ class ChatCompletionRequest(BaseModel):
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
     top_p: float = Field(default=1.0, gt=0.0, le=1.0)
     top_k: int = Field(default=0, ge=0)
+    repetition_penalty: float = Field(default=1.0, gt=0.0, le=2.0)
     seed: int | None = None
     stream: bool = False
 
@@ -122,6 +136,8 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         lengths = {item.shape[1] for item in encoded}
         if len(lengths) != 1:
             raise HTTPException(status_code=400, detail="static batch prompts must have equal token lengths")
+        if next(iter(lengths)) + request.max_tokens > current.model.config.max_position_embeddings:
+            raise HTTPException(status_code=400, detail="prompt plus max_tokens exceeds model context length")
         if not await _admit(current):
             raise HTTPException(status_code=429, detail="request queue is full")
         await current.execution.acquire()
@@ -175,13 +191,16 @@ def create_app(engine: Engine | None = None) -> FastAPI:
                 return_tensors="pt",
                 return_dict=True,
             )
-            encoded = encoded["input_ids"]
+            if not torch.is_tensor(encoded):
+                encoded = encoded["input_ids"]
             if encoded.shape[1] + request.max_tokens > current.model.config.max_position_embeddings:
                 raise HTTPException(status_code=400, detail="prompt plus max_tokens exceeds model context length")
             device = next(current.model.parameters()).device
             encoded = encoded.to(device)
-            await current.execution.acquire()
-            execution_acquired = True
+            scheduled = current.scheduler is not None and not request.stream
+            if not scheduled:
+                await current.execution.acquire()
+                execution_acquired = True
             current.active[request_id] = "prefill"
             if request.stream:
                 current.active[request_id] = "decode"
@@ -193,19 +212,36 @@ def create_app(engine: Engine | None = None) -> FastAPI:
                 )
             started = time.perf_counter()
             current.active[request_id] = "decode"
-            result = await run_in_threadpool(
-                generate,
-                current.model,
-                encoded,
-                max_new_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_k=request.top_k,
-                top_p=request.top_p,
-                seed=request.seed,
-            )
+            if scheduled:
+                sequences = await current.scheduler.submit(
+                    encoded,
+                    max_new_tokens=request.max_tokens,
+                    temperature=request.temperature,
+                    top_k=request.top_k,
+                    top_p=request.top_p,
+                    repetition_penalty=request.repetition_penalty,
+                    seed=request.seed,
+                )
+                prompt_tokens = encoded.shape[1]
+                generated_tokens = sequences.shape[1] - prompt_tokens
+            else:
+                result = await run_in_threadpool(
+                    generate,
+                    current.model,
+                    encoded,
+                    max_new_tokens=request.max_tokens,
+                    temperature=request.temperature,
+                    top_k=request.top_k,
+                    top_p=request.top_p,
+                    repetition_penalty=request.repetition_penalty,
+                    seed=request.seed,
+                )
+                sequences = result.sequences
+                prompt_tokens = result.prompt_tokens
+                generated_tokens = result.generated_tokens
             current.elapsed_total += time.perf_counter() - started
             text = current.tokenizer.decode(
-                result.sequences[0, result.prompt_tokens:], skip_special_tokens=True
+                sequences[0, prompt_tokens:], skip_special_tokens=True
             )
             return {
                 "id": request_id,
@@ -214,9 +250,9 @@ def create_app(engine: Engine | None = None) -> FastAPI:
                 "model": MODEL_ID,
                 "choices": [{"index": 0, "message": {"role": "assistant", "content": text},
                              "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": result.prompt_tokens,
-                          "completion_tokens": result.generated_tokens,
-                          "total_tokens": result.prompt_tokens + result.generated_tokens},
+                "usage": {"prompt_tokens": prompt_tokens,
+                          "completion_tokens": generated_tokens,
+                          "total_tokens": prompt_tokens + generated_tokens},
             }
         except asyncio.CancelledError:
             current.active[request_id] = "cancelled"
@@ -260,6 +296,7 @@ async def _stream_response(engine: Engine, request: ChatCompletionRequest, input
             temperature=request.temperature,
             top_k=request.top_k,
             top_p=request.top_p,
+            repetition_penalty=request.repetition_penalty,
             seed=request.seed,
         )
         while True:

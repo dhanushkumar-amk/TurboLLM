@@ -83,6 +83,18 @@ class GroupedQueryAttention(nn.Module):
         key_positions = torch.arange(key_length, device=query.device)
         causal_mask = key_positions[None, :] <= query_positions[:, None]
         causal_mask = causal_mask[None, None, :, :]
+        if attention_mask is not None and attention_mask.ndim == 2:
+            if attention_mask.shape != (batch, key_length):
+                raise ValueError("2D attention_mask must have shape (batch, key_length)")
+            key_is_valid = attention_mask[:, None, None, :].bool()
+            query_positions = torch.arange(
+                key_length - query_length, key_length, device=query.device
+            )
+            self_positions = key_positions[None, :] == query_positions[:, None]
+            # Padding-query rows still need one finite softmax entry. Their
+            # outputs are ignored by later valid queries through key_is_valid.
+            causal_mask = causal_mask & (key_is_valid | self_positions[None, None, :, :])
+            attention_mask = None
 
         if self.backend == "sdpa":
             sdpa_mask: torch.Tensor = causal_mask

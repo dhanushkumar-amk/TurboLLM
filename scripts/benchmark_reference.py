@@ -18,10 +18,17 @@ from turbo_llm.generation import generate
 from turbo_llm.model import MODEL_ID, MODEL_REVISION, QwenModel
 
 
-def timed_hf(model, input_ids, count: int) -> tuple[float, list[int]]:
+def timed_hf(model, input_ids, count: int, use_cache: bool) -> tuple[float, list[int]]:
     started = time.perf_counter()
     with torch.inference_mode():
-        output = model.generate(input_ids, max_new_tokens=count, do_sample=False, use_cache=True)
+        output = model.generate(
+            input_ids,
+            attention_mask=torch.ones_like(input_ids),
+            max_new_tokens=count,
+            do_sample=False,
+            use_cache=use_cache,
+            repetition_penalty=1.0,
+        )
     if input_ids.device.type == "cuda":
         torch.cuda.synchronize(input_ids.device)
     return time.perf_counter() - started, output[0].tolist()
@@ -32,6 +39,7 @@ def main() -> None:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--new-tokens", type=int, default=16)
     parser.add_argument("--dtype", choices=("fp16", "fp32"), default="fp16")
+    parser.add_argument("--cache", choices=("on", "off"), default="on")
     args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dtype = torch.float16 if args.dtype == "fp16" and device.type == "cuda" else torch.float32
@@ -49,11 +57,13 @@ def main() -> None:
 
     custom_times, hf_times = [], []
     custom_sequences, hf_sequences = [], []
+    use_cache = args.cache == "on"
     for _ in range(args.runs + 1):
         custom_result = generate(
-            custom, input_ids, max_new_tokens=args.new_tokens, eos_token_id=None
+            custom, input_ids, max_new_tokens=args.new_tokens, eos_token_id=None,
+            use_cache=use_cache,
         )
-        hf_elapsed, hf_sequence = timed_hf(hf, input_ids, args.new_tokens)
+        hf_elapsed, hf_sequence = timed_hf(hf, input_ids, args.new_tokens, use_cache)
         if _:
             custom_times.append(custom_result.elapsed_seconds)
             hf_times.append(hf_elapsed)
@@ -65,6 +75,7 @@ def main() -> None:
         "revision": MODEL_REVISION,
         "device": str(device),
         "dtype": str(dtype),
+        "kv_cache": use_cache,
         "prompt_tokens": int(input_ids.shape[1]),
         "new_tokens": args.new_tokens,
         "runs": args.runs,
