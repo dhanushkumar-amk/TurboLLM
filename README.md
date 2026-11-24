@@ -2,7 +2,7 @@
 
 TurboLLM is a learning project for building an LLM inference engine in PyTorch. The project is planned in stages: understand model execution, implement a correct forward pass, add KV-cache memory management and scheduling, then profile, serve, and benchmark the engine.
 
-The first milestone is the project landing page and roadmap. Inference features and benchmark results are not implemented yet; the PRD and 50-phase plan describe the intended work.
+TurboLLM includes a learning-focused PyTorch inference engine, an API server, and reproducible benchmark and verification scripts. The 50-phase plan tracks implementation status.
 
 ## Project documents
 
@@ -110,7 +110,7 @@ Start the local API after installing `requirements-ml.txt`:
 uvicorn turbo_llm.server:app --host 127.0.0.1 --port 8000
 ```
 
-The server provides `/health`, `/metrics`, `/v1/chat/completions` (including SSE streaming), and `/batch` for equal-length static batches. Non-streaming chat requests use the prototype continuous scheduler, which batches live decode steps and can admit new requests at token boundaries. It currently recomputes padded histories each step instead of reusing each request's KV cache. Run `python scripts/smoke_server.py` to exercise the real pinned model through health, completion, and streaming routes.
+The server provides `/health`, `/metrics`, `/v1/chat/completions` (including SSE streaming), and `/batch` for equal-length static batches. Non-streaming chat requests use the prototype continuous scheduler, which batches live decode steps, keeps compact per-request KV caches, and can admit new requests at token boundaries. Run `python scripts/smoke_server.py` to exercise the real pinned model through health, completion, and streaming routes.
 
 ## Profiling and benchmarks
 
@@ -119,6 +119,7 @@ python scripts/profile_inference.py --tokens 8
 python scripts/benchmark_attention.py --runs 5 --new-tokens 24
 python scripts/benchmark_reference.py --runs 5 --new-tokens 24 --dtype fp16
 python scripts/benchmark_reference.py --runs 5 --new-tokens 24 --dtype fp16 --cache off
+python scripts/benchmark_scheduler.py --dtype fp32 --runs 3
 ```
 
-The SDPA benchmark showed a preliminary latency improvement on the recorded short workload. The Transformers comparison remains slower for TurboLLM in the short sample. See [local benchmark notes](benchmarks/local-baseline.md); rerun on an idle GPU with longer workloads before drawing performance conclusions.
+The SDPA benchmark showed a preliminary latency improvement on the recorded short workload. TurboLLM remains slower than Transformers on the recorded single-request workload; continuous batching improved aggregate throughput in a small synthetic multi-request workload. See [local benchmark notes](benchmarks/local-baseline.md) for setup and limitations.

@@ -51,4 +51,4 @@
 49. [x] Write setup guide, architecture notes, and benchmark notes
 50. [x] Add reproducible local model and API demo scripts
 
-`[~]` means part of the item is implemented, but the full item remains incomplete. `[ ]` is unfinished. Continuous batching is a correctness-focused prototype: it merges new requests at token boundaries but recomputes padded histories rather than using per-request KV caches. llama.cpp and vLLM are not installed in the Windows/WSL environment, so no results against them are claimed.
+`[~]` means part of the item is implemented, but the full item remains incomplete. `[ ]` is unfinished. Continuous batching uses per-request KV caches and is verified against independent generation, but the scheduler is an educational baseline rather than a production scheduler. llama.cpp and vLLM are not installed in the Windows/WSL environment, so no results against them are claimed.

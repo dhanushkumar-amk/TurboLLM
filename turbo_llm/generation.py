@@ -4,11 +4,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import time
+from collections.abc import Sequence
 
 import torch
 
 from turbo_llm.model import QwenModel
 from turbo_llm.sampling import sample_next_token
+
+
+DEFAULT_EOS_TOKEN_IDS = (151645, 151643)
+
+
+def _eos_tensor(eos_token_id: int | Sequence[int] | None, device: torch.device):
+    if eos_token_id is None:
+        return None
+    ids = (eos_token_id,) if isinstance(eos_token_id, int) else tuple(eos_token_id)
+    return torch.tensor(ids, device=device, dtype=torch.long)
 
 
 @dataclass
@@ -29,7 +40,7 @@ def generate_token_stream(
     input_ids: torch.Tensor,
     *,
     max_new_tokens: int = 64,
-    eos_token_id: int | None = 151645,
+    eos_token_id: int | Sequence[int] | None = DEFAULT_EOS_TOKEN_IDS,
     temperature: float = 0.0,
     top_k: int = 0,
     top_p: float = 1.0,
@@ -61,7 +72,8 @@ def generate_token_stream(
             generator=generator,
         )
         yield token
-        if eos_token_id is not None and bool((token == eos_token_id).all()):
+        eos_ids = _eos_tensor(eos_token_id, token.device)
+        if eos_ids is not None and bool(torch.isin(token, eos_ids).all()):
             break
         sequences = torch.cat((sequences, token), dim=1)
         output = model(token, cache)
@@ -74,7 +86,7 @@ def generate(
     input_ids: torch.Tensor,
     *,
     max_new_tokens: int = 64,
-    eos_token_id: int | None = 151645,
+    eos_token_id: int | Sequence[int] | None = DEFAULT_EOS_TOKEN_IDS,
     temperature: float = 0.0,
     top_k: int = 0,
     top_p: float = 1.0,
@@ -101,6 +113,7 @@ def generate(
     cache = output.past_key_values if use_cache else None
     logits = output.logits[:, -1, :]
     finished = torch.zeros(input_ids.shape[0], dtype=torch.bool, device=input_ids.device)
+    eos_ids = _eos_tensor(eos_token_id, input_ids.device)
     generated = 0
     for _ in range(max_new_tokens):
         next_token = sample_next_token(
@@ -112,12 +125,12 @@ def generate(
             previous_tokens=result,
             generator=generator,
         )
-        if eos_token_id is not None:
-            next_token = torch.where(finished[:, None], eos_token_id, next_token)
+        if eos_ids is not None:
+            next_token = torch.where(finished[:, None], eos_ids[0], next_token)
         result = torch.cat((result, next_token), dim=1)
         generated += 1
-        if eos_token_id is not None:
-            finished |= next_token[:, 0] == eos_token_id
+        if eos_ids is not None:
+            finished |= torch.isin(next_token[:, 0], eos_ids)
             if bool(finished.all()):
                 break
         if generated < max_new_tokens:

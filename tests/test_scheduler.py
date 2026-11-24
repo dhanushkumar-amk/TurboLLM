@@ -16,12 +16,18 @@ class SlowTinyModel(torch.nn.Module):
         self.config = type("Config", (), {"max_position_embeddings": 32})()
         self.max_batch_seen = 0
 
-    def forward(self, input_ids, attention_mask=None, position_ids=None):
+    def forward(self, input_ids, past_key_values=None, attention_mask=None, position_ids=None):
         self.max_batch_seen = max(self.max_batch_seen, input_ids.shape[0])
         time.sleep(0.04)
         logits = torch.zeros(input_ids.shape[0], input_ids.shape[1], 5)
         logits[..., 2] = 1
-        return type("Output", (), {"logits": logits})()
+        current = input_ids.float().unsqueeze(1).unsqueeze(-1)
+        if past_key_values is not None:
+            current = torch.cat((past_key_values[0][0], current), dim=2)
+        return type("Output", (), {
+            "logits": logits,
+            "past_key_values": ((current, current.clone()),),
+        })()
 
 
 class SchedulerTests(unittest.TestCase):

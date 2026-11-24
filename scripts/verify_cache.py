@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from turbo_llm.cache import PagedKVCache, estimate_kv_cache_bytes
 from turbo_llm.generation import generate
 from turbo_llm.model import QwenModel
+from turbo_llm.scheduler import ContinuousBatchScheduler
 
 
 def main() -> None:
@@ -28,6 +30,23 @@ def main() -> None:
     uncached = generate(model, prompt, max_new_tokens=4, eos_token_id=None, use_cache=False)
     if not torch.equal(cached.sequences, uncached.sequences):
         raise AssertionError("cached and uncached greedy token sequences differ")
+
+    async def verify_continuous_cache_batch():
+        scheduler = ContinuousBatchScheduler(
+            model, max_batch_size=2, queue_limit=2, batch_window_seconds=0.01
+        )
+        prompts = [prompt, prompt[:, 1:]]
+        scheduled_a, scheduled_b = await asyncio.gather(*[
+            scheduler.submit(item, max_new_tokens=3, eos_token_id=None)
+            for item in prompts
+        ])
+        expected_a = generate(model, prompts[0], max_new_tokens=3, eos_token_id=None).sequences
+        expected_b = generate(model, prompts[1], max_new_tokens=3, eos_token_id=None).sequences
+        torch.testing.assert_close(scheduled_a, expected_a)
+        torch.testing.assert_close(scheduled_b, expected_b)
+        return scheduler
+
+    scheduler = asyncio.run(verify_continuous_cache_batch())
 
     pages = PagedKVCache(2, 3, 2, 2, 4)
     pages.create_request("a")
@@ -46,6 +65,7 @@ def main() -> None:
     )
     print(f"Device: {device}; cached prompt logits match full-sequence logits.")
     print(f"Cached and uncached greedy output: {cached.sequences[0].tolist()}")
+    print(f"Continuous batched KV-cache outputs match independent generation ({scheduler.requests_completed} requests).")
     print(f"Paged allocator append/read/release: passed; blocks free={pages.free_count}")
     print(f"Qwen KV cache at 32K, batch 1, FP16: {estimate / 1024**3:.2f} GiB")
 

@@ -1,21 +1,17 @@
-"""Continuous decode scheduler with equal-time-step dynamic microbatches.
-
-This first scheduler favors understandable correctness: it pads active token
-histories and reruns them on each decode tick. It demonstrates request arrival,
-batch admission, independent completion, and cancellation, but does not use KV
-pages and is not intended for high-throughput serving.
-"""
+"""Continuous decode scheduler with per-request contiguous KV caches."""
 
 from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from collections.abc import Sequence
 
 import torch
 from starlette.concurrency import run_in_threadpool
 
 from turbo_llm.model import QwenModel
 from turbo_llm.sampling import sample_next_token
+from turbo_llm.generation import DEFAULT_EOS_TOKEN_IDS
 
 
 @dataclass
@@ -23,7 +19,7 @@ class _Job:
     input_ids: torch.Tensor
     max_new_tokens: int
     future: asyncio.Future
-    eos_token_id: int | None
+    eos_token_id: int | Sequence[int] | None
     temperature: float
     top_k: int
     top_p: float
@@ -31,6 +27,7 @@ class _Job:
     seed: int | None
     generated: int = 0
     generator: torch.Generator | None = None
+    past_key_values: tuple[tuple[torch.Tensor, torch.Tensor], ...] | None = None
 
 
 class ContinuousBatchScheduler:
@@ -64,7 +61,7 @@ class ContinuousBatchScheduler:
         input_ids: torch.Tensor,
         *,
         max_new_tokens: int,
-        eos_token_id: int | None = 151645,
+        eos_token_id: int | Sequence[int] | None = DEFAULT_EOS_TOKEN_IDS,
         temperature: float = 0.0,
         top_k: int = 0,
         top_p: float = 1.0,
@@ -107,11 +104,13 @@ class ContinuousBatchScheduler:
     async def _run(self) -> None:
         active: list[_Job] = []
         while True:
-            if not active:
+            previous_active = [job for job in active if not job.future.cancelled()]
+            incoming: list[_Job] = []
+            if not previous_active:
                 try:
                     first = await asyncio.wait_for(self.queue.get(), timeout=0.1)
                     self.queue.task_done()
-                    active.append(first)
+                    incoming.append(first)
                 except TimeoutError:
                     async with self._worker_lock:
                         if self.queue.empty():
@@ -120,61 +119,38 @@ class ContinuousBatchScheduler:
                     continue
             if self.batch_window_seconds:
                 await asyncio.sleep(self.batch_window_seconds)
-            while len(active) < self.max_batch_size:
+            while len(incoming) < self.max_batch_size:
                 try:
-                    active.append(self.queue.get_nowait())
+                    incoming.append(self.queue.get_nowait())
                     self.queue.task_done()
                 except asyncio.QueueEmpty:
                     break
-            active = [job for job in active if not job.future.cancelled()]
-            if not active:
+            incoming = [job for job in incoming if not job.future.cancelled()]
+            if not previous_active and not incoming:
                 continue
             try:
-                token_ids, attention_mask, position_ids = self._make_batch(active)
-                if self.execution_semaphore is None:
-                    output = await run_in_threadpool(
-                        _model_forward, self.model, token_ids, attention_mask, position_ids
-                    )
-                else:
-                    async with self.execution_semaphore:
-                        output = await run_in_threadpool(
-                            _model_forward, self.model, token_ids, attention_mask, position_ids
-                        )
-                logits = output.logits[:, -1, :]
-                still_active = []
-                for row, job in enumerate(active):
-                    if job.generator is None and job.seed is not None:
-                        job.generator = torch.Generator(device=logits.device).manual_seed(job.seed)
-                    token = sample_next_token(
-                        logits[row:row + 1],
-                        temperature=job.temperature,
-                        top_k=job.top_k,
-                        top_p=job.top_p,
-                        repetition_penalty=job.repetition_penalty,
-                        previous_tokens=job.input_ids,
-                        generator=job.generator,
-                    )
-                    job.input_ids = torch.cat((job.input_ids, token.to(job.input_ids.device)), dim=1)
-                    job.generated += 1
-                    finished = (
-                        job.future.cancelled()
-                        or job.generated >= job.max_new_tokens
-                        or (job.eos_token_id is not None and token.item() == job.eos_token_id)
-                    )
-                    if finished:
-                        if not job.future.done():
-                            job.future.set_result(job.input_ids)
-                        self.requests_completed += 1
-                    else:
-                        still_active.append(job)
-                active = still_active
+                new_active = await self._prefill(incoming) if incoming else []
+                previous_active = await self._decode(previous_active) if previous_active else []
+                active = previous_active + new_active
             except Exception as exc:
-                for job in active:
+                for job in previous_active + incoming:
                     if not job.future.done():
                         job.future.set_exception(exc)
                 active = []
 
-    def _make_batch(self, jobs: list[_Job]):
+    async def _forward(self, input_ids, attention_mask=None, position_ids=None, past_key_values=None):
+        if self.execution_semaphore is None:
+            return await run_in_threadpool(
+                _model_forward, self.model, input_ids, attention_mask,
+                position_ids, past_key_values,
+            )
+        async with self.execution_semaphore:
+            return await run_in_threadpool(
+                _model_forward, self.model, input_ids, attention_mask,
+                position_ids, past_key_values,
+            )
+
+    async def _prefill(self, jobs: list[_Job]) -> list[_Job]:
         device = next(self.model.parameters()).device
         max_length = max(job.input_ids.shape[1] for job in jobs)
         ids = torch.full(
@@ -187,9 +163,96 @@ class ContinuousBatchScheduler:
             ids[row, max_length - sequence.numel():] = sequence
             mask[row, max_length - sequence.numel():] = True
         positions = mask.long().cumsum(-1).sub(1).clamp_min(0)
-        return ids, mask, positions
+        output = await self._forward(ids, mask, positions)
+        active = []
+        for row, job in enumerate(jobs):
+            pad_count = max_length - job.input_ids.shape[1]
+            job.past_key_values = tuple(
+                (key[row:row + 1, :, pad_count:, :].contiguous(),
+                 value[row:row + 1, :, pad_count:, :].contiguous())
+                for key, value in output.past_key_values
+            )
+            self._sample_and_advance(job, output.logits[row:row + 1, -1, :])
+            if not self._finish_if_done(job):
+                active.append(job)
+        return active
+
+    async def _decode(self, jobs: list[_Job]) -> list[_Job]:
+        jobs = [job for job in jobs if not job.future.cancelled()]
+        if not jobs:
+            return []
+        device = next(self.model.parameters()).device
+        cache_lengths = [job.past_key_values[0][0].shape[2] for job in jobs]
+        max_cache_length = max(cache_lengths)
+        batch_size = len(jobs)
+        batched_cache = []
+        for layer_index in range(len(jobs[0].past_key_values)):
+            key_rows, value_rows = [], []
+            for job, cache_length in zip(jobs, cache_lengths):
+                key, value = job.past_key_values[layer_index]
+                pad = max_cache_length - cache_length
+                key_rows.append(torch.nn.functional.pad(key, (0, 0, pad, 0)))
+                value_rows.append(torch.nn.functional.pad(value, (0, 0, pad, 0)))
+            batched_cache.append((torch.cat(key_rows, dim=0), torch.cat(value_rows, dim=0)))
+
+        mask = torch.zeros((batch_size, max_cache_length + 1), dtype=torch.bool, device=device)
+        positions = torch.empty((batch_size, 1), dtype=torch.long, device=device)
+        for row, cache_length in enumerate(cache_lengths):
+            mask[row, max_cache_length - cache_length:] = True
+            positions[row, 0] = cache_length
+        input_ids = torch.cat([job.input_ids[:, -1:].to(device) for job in jobs], dim=0)
+        output = await self._forward(
+            input_ids, mask, positions, tuple(batched_cache)
+        )
+        active = []
+        for row, (job, cache_length) in enumerate(zip(jobs, cache_lengths)):
+            start = max_cache_length - cache_length
+            job.past_key_values = tuple(
+                (key[row:row + 1, :, start:, :].contiguous(),
+                 value[row:row + 1, :, start:, :].contiguous())
+                for key, value in output.past_key_values
+            )
+            self._sample_and_advance(job, output.logits[row:row + 1, -1, :])
+            if not self._finish_if_done(job):
+                active.append(job)
+        return active
+
+    def _sample_and_advance(self, job: _Job, logits: torch.Tensor) -> None:
+        if job.generator is None and job.seed is not None:
+            job.generator = torch.Generator(device=logits.device).manual_seed(job.seed)
+        token = sample_next_token(
+            logits,
+            temperature=job.temperature,
+            top_k=job.top_k,
+            top_p=job.top_p,
+            repetition_penalty=job.repetition_penalty,
+            previous_tokens=job.input_ids,
+            generator=job.generator,
+        )
+        job.input_ids = torch.cat((job.input_ids, token.to(job.input_ids.device)), dim=1)
+        job.generated += 1
+
+    def _finish_if_done(self, job: _Job) -> bool:
+        last_token = int(job.input_ids[0, -1])
+        finished = (
+            job.future.cancelled()
+            or job.generated >= job.max_new_tokens
+            or (job.eos_token_id is not None and last_token in (
+                (job.eos_token_id,) if isinstance(job.eos_token_id, int) else job.eos_token_id
+            ))
+        )
+        if finished:
+            if not job.future.done():
+                job.future.set_result(job.input_ids)
+            self.requests_completed += 1
+        return finished
 
 
 @torch.inference_mode()
-def _model_forward(model, input_ids, attention_mask, position_ids):
-    return model(input_ids, attention_mask=attention_mask, position_ids=position_ids)
+def _model_forward(model, input_ids, attention_mask, position_ids, past_key_values):
+    return model(
+        input_ids,
+        past_key_values=past_key_values,
+        attention_mask=attention_mask,
+        position_ids=position_ids,
+    )
