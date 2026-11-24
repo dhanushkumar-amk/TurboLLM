@@ -9,6 +9,7 @@ The first milestone is the project landing page and roadmap. Inference features 
 - [Product requirements](PRD.md)
 - [50-phase implementation plan](plans.md)
 - [Interview notes](interview.md)
+- [Development hardware and software baseline](environment.md)
 
 ## Landing page
 

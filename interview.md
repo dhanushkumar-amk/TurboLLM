@@ -42,6 +42,10 @@ First establish correctness against Hugging Face. Then evaluate cache correctnes
 
 The PRD, 50-phase plan, and project landing page are in place. Core model execution, cache management, batching, serving, and benchmark results remain future implementation work.
 
+### What is the development environment?
+
+The target PC has a Ryzen 7 5800X, 32 GB system RAM, and an RTX 3050 with 8 GB VRAM. The NVIDIA driver sees the GPU, but PyTorch is not installed in the active Python environment yet. The machine currently reports Python 3.15.2, so the next setup step is to check PyTorch's supported Python versions and create a compatible project virtual environment. See [environment.md](environment.md) for the captured versions and the Windows product-name discrepancy.
+
 ### How does the current landing page render its sculpture?
 
 The hero draws a rotating tube around a mathematical knot. The browser projects its mesh onto a canvas and paints the distant faces first. A pause control and reduced-motion support keep the illustration usable at rest. The architecture explorer explains prefill, decode, and scheduling.
