@@ -4,7 +4,7 @@ import unittest
 
 import torch
 
-from turbo_llm.cache import PagedKVCache, estimate_kv_cache_bytes
+from turbo_llm.cache import MemoryBudget, PagedKVCache, estimate_kv_cache_bytes
 from turbo_llm.layers.attention import GroupedQueryAttention
 from turbo_llm.layers.mlp import SwiGLU
 from turbo_llm.layers.rms_norm import RMSNorm
@@ -44,6 +44,14 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(output.shape, (1, 3, 4, 8))
         self.assertEqual(SwiGLU(8, 16)(torch.randn(2, 3, 8)).shape, (2, 3, 8))
 
+    def test_sdpa_matches_eager_gqa(self):
+        q = torch.randn(1, 4, 4, 8)
+        k = torch.randn(1, 2, 4, 8)
+        v = torch.randn(1, 2, 4, 8)
+        eager = GroupedQueryAttention(4, 2, 8, backend="eager")(q, k, v)
+        sdpa = GroupedQueryAttention(4, 2, 8, backend="sdpa")(q, k, v)
+        torch.testing.assert_close(eager, sdpa, rtol=1e-5, atol=1e-5)
+
     def test_sampling_and_paged_cache_lifecycle(self):
         logits = torch.tensor([[0.0, 3.0, 1.0]])
         self.assertEqual(sample_next_token(logits).item(), 1)
@@ -54,6 +62,13 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(cache.read("r")[0].shape, (1, 1, 1, 2))
         cache.release("r")
         self.assertEqual(cache.free_count, 2)
+        budget = MemoryBudget(16)
+        budget.reserve("r", 8)
+        self.assertEqual(budget.available_bytes, 8)
+        with self.assertRaises(MemoryError):
+            budget.reserve("too-large", 9)
+        budget.release("r")
+        self.assertEqual(budget.used_bytes, 0)
         self.assertEqual(estimate_kv_cache_bytes(
             num_layers=1, batch_size=1, num_key_value_heads=1,
             sequence_length=1, head_dim=2, dtype=torch.float16,

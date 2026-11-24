@@ -35,6 +35,7 @@ class GroupedQueryAttention(nn.Module):
         head_dim: int,
         *,
         dropout: float = 0.0,
+        backend: str = "eager",
     ) -> None:
         super().__init__()
         if min(num_attention_heads, num_key_value_heads, head_dim) <= 0:
@@ -43,11 +44,14 @@ class GroupedQueryAttention(nn.Module):
             raise ValueError("query head count must be divisible by KV head count")
         if not 0.0 <= dropout < 1.0:
             raise ValueError("dropout must be in [0, 1)")
+        if backend not in {"eager", "sdpa"}:
+            raise ValueError("backend must be 'eager' or 'sdpa'")
         self.num_attention_heads = num_attention_heads
         self.num_key_value_heads = num_key_value_heads
         self.head_dim = head_dim
         self.num_key_value_groups = num_attention_heads // num_key_value_heads
         self.dropout = dropout
+        self.backend = backend
 
     def forward(
         self,
@@ -71,18 +75,36 @@ class GroupedQueryAttention(nn.Module):
         if query_length > key_length:
             raise ValueError("query length cannot exceed key/value length")
 
-        key = repeat_kv(key, self.num_key_value_groups)
-        value = repeat_kv(value, self.num_key_value_groups)
-        scores = torch.matmul(query, key.transpose(-2, -1)) / (self.head_dim**0.5)
-
         # Supports a full prompt (Q and K same length) and incremental decoding
         # where Q is the final token and K/V contain the complete cache.
         query_positions = torch.arange(
             key_length - query_length, key_length, device=query.device
         )
         key_positions = torch.arange(key_length, device=query.device)
-        causal_mask = key_positions[None, :] > query_positions[:, None]
-        scores = scores.masked_fill(causal_mask[None, None, :, :], float("-inf"))
+        causal_mask = key_positions[None, :] <= query_positions[:, None]
+        causal_mask = causal_mask[None, None, :, :]
+
+        if self.backend == "sdpa":
+            sdpa_mask: torch.Tensor = causal_mask
+            if attention_mask is not None:
+                additive_causal = torch.zeros_like(causal_mask, dtype=query.dtype)
+                additive_causal = additive_causal.masked_fill(~causal_mask, float("-inf"))
+                sdpa_mask = additive_causal + attention_mask
+            output = torch.nn.functional.scaled_dot_product_attention(
+                query,
+                key,
+                value,
+                attn_mask=sdpa_mask,
+                dropout_p=self.dropout if self.training else 0.0,
+                is_causal=False,
+                enable_gqa=True,
+            )
+            return output.transpose(1, 2).contiguous()
+
+        key = repeat_kv(key, self.num_key_value_groups)
+        value = repeat_kv(value, self.num_key_value_groups)
+        scores = torch.matmul(query, key.transpose(-2, -1)) / (self.head_dim**0.5)
+        scores = scores.masked_fill(~causal_mask, float("-inf"))
         if attention_mask is not None:
             scores = scores + attention_mask
 

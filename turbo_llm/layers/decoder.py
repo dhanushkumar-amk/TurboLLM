@@ -23,6 +23,7 @@ class DecoderLayer(nn.Module):
         eps: float = 1e-6,
         rope_theta: float = 1_000_000.0,
         attention_bias: bool = True,
+        attention_backend: str = "eager",
     ) -> None:
         super().__init__()
         head_dim = hidden_size // num_attention_heads
@@ -35,7 +36,8 @@ class DecoderLayer(nn.Module):
             "o_proj": nn.Linear(num_attention_heads * head_dim, hidden_size, bias=False),
         })
         self.attention = GroupedQueryAttention(
-            num_attention_heads, num_key_value_heads, head_dim
+            num_attention_heads, num_key_value_heads, head_dim,
+            backend=attention_backend,
         )
         self.rotary = RotaryEmbedding(head_dim, rope_theta)
         self.mlp = SwiGLU(hidden_size, intermediate_size)

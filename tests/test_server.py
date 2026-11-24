@@ -33,6 +33,9 @@ class TinyTokenizer:
     def decode(self, tokens, skip_special_tokens=True):
         return "tiny response"
 
+    def __call__(self, prompt, return_tensors="pt"):
+        return type("Encoded", (), {"input_ids": torch.tensor([[1, 2]])})()
+
 
 class ServerTests(unittest.TestCase):
     def test_health_metrics_and_chat(self):
@@ -53,6 +56,19 @@ class ServerTests(unittest.TestCase):
                 "model": "not-supported", "messages": [{"role": "user", "content": "hi"}],
             })
             self.assertEqual(response.status_code, 400)
+
+    def test_static_batch_and_streaming(self):
+        with TestClient(create_app(Engine(TinyModel(), TinyTokenizer()))) as client:
+            batch = client.post("/batch", json={"prompts": ["one", "two"], "max_tokens": 1})
+            self.assertEqual(batch.status_code, 200, batch.text)
+            self.assertEqual(len(batch.json()["choices"]), 2)
+            stream = client.post("/v1/chat/completions", json={
+                "messages": [{"role": "user", "content": "hello"}],
+                "max_tokens": 1,
+                "stream": True,
+            })
+            self.assertEqual(stream.status_code, 200, stream.text)
+            self.assertIn("data: [DONE]", stream.text)
 
 
 if __name__ == "__main__":

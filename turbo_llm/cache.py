@@ -25,6 +25,38 @@ def estimate_kv_cache_bytes(
 
 
 @dataclass
+class MemoryBudget:
+    """Track cache reservations against a configured byte limit."""
+
+    max_bytes: int
+    reservations: dict[str, int] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.max_bytes <= 0:
+            raise ValueError("max_bytes must be positive")
+
+    @property
+    def used_bytes(self) -> int:
+        return sum(self.reservations.values())
+
+    @property
+    def available_bytes(self) -> int:
+        return self.max_bytes - self.used_bytes
+
+    def reserve(self, request_id: str, size_bytes: int) -> None:
+        if request_id in self.reservations:
+            raise ValueError(f"reservation already exists: {request_id}")
+        if size_bytes <= 0:
+            raise ValueError("size_bytes must be positive")
+        if size_bytes > self.available_bytes:
+            raise MemoryError("KV cache memory budget exceeded")
+        self.reservations[request_id] = size_bytes
+
+    def release(self, request_id: str) -> None:
+        self.reservations.pop(request_id, None)
+
+
+@dataclass
 class PagedKVCache:
     """Fixed-size KV pages with per-request block tables and explicit release.
 

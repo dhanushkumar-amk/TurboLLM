@@ -24,7 +24,7 @@ class ModelOutput:
 class QwenModel(nn.Module):
     """Qwen2 causal LM forward pass with optional layer-wise KV cache."""
 
-    def __init__(self, config) -> None:
+    def __init__(self, config, attention_backend: str = "eager") -> None:
         super().__init__()
         self.config = config
         rope_theta = config.rope_parameters["rope_theta"]
@@ -39,6 +39,7 @@ class QwenModel(nn.Module):
                 eps=config.rms_norm_eps,
                 rope_theta=rope_theta,
                 attention_bias=True,
+                attention_backend=attention_backend,
             )
             for _ in range(config.num_hidden_layers)
         ])
@@ -76,6 +77,7 @@ class QwenModel(nn.Module):
         *,
         dtype: torch.dtype = torch.float16,
         device: str | torch.device = "cuda",
+        attention_backend: str = "eager",
     ) -> "QwenModel":
         from transformers import AutoConfig, AutoModelForCausalLM
 
@@ -83,7 +85,7 @@ class QwenModel(nn.Module):
         reference = AutoModelForCausalLM.from_pretrained(
             model_id, revision=revision, dtype=dtype, low_cpu_mem_usage=True
         )
-        model = cls(config).to(dtype=dtype)
+        model = cls(config, attention_backend=attention_backend).to(dtype=dtype)
         incompatible = model.load_state_dict(reference.state_dict(), strict=False)
         unexpected = [key for key in incompatible.unexpected_keys if key != "lm_head.weight"]
         missing = [key for key in incompatible.missing_keys if key != "lm_head.weight"]
