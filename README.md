@@ -8,6 +8,7 @@ The first milestone is the project landing page and roadmap. Inference features 
 
 - [Product requirements](PRD.md)
 - [50-phase implementation plan](plans.md)
+- [Learning roadmap](learning.md)
 - [Interview notes](interview.md)
 - [Development hardware and software baseline](environment.md)
 
@@ -62,4 +63,20 @@ Verify the first layer against the pinned Hugging Face checkpoint with:
 python scripts/verify_rms_norm.py
 ```
 
-The comparison copies the checkpoint's first input RMSNorm weights and checks a small FP16 CUDA input. The next planned component is RoPE, followed by GQA attention and SwiGLU.
+The comparison copies the checkpoint's first input RMSNorm weights and checks a small FP16 CUDA input.
+
+RoPE is implemented in `turbo_llm/layers/rope.py`. Verify it against Qwen's rotary embedding with:
+
+```powershell
+python scripts/verify_rope.py
+```
+
+The verifier checks query shape `(batch, 14, sequence, 64)` and key shape `(batch, 2, sequence, 64)` using the model's configured RoPE theta.
+
+Grouped-query causal attention is implemented in `turbo_llm/layers/attention.py`. Verify it with the pinned model using:
+
+```powershell
+python scripts/verify_attention.py
+```
+
+The comparison feeds Q/K/V projected from a small hidden-state batch through both the TurboLLM implementation and Qwen's eager attention, including RoPE and a causal mask. The next component is SwiGLU.
