@@ -51,8 +51,8 @@ export default function Sculpture({paused}: {paused:boolean}) {
       for(const {quad,depth,j,i} of faces){
         const shine=(1+Math.cos(j*2*Math.PI/sides+.65*Math.sin(i/rings*4*Math.PI+a)))/2;
         const light=21+shine*42+depth*7;
-        ctx.fillStyle="hsl("+(248+25*shine)+" 83% "+light+"%)";
-        ctx.strokeStyle="hsla(255,100%,87%,.52)"; ctx.lineWidth=.58;
+        ctx.fillStyle="hsl("+(158+25*shine)+" 78% "+light+"%)";
+        ctx.strokeStyle="hsla(164,100%,86%,.48)"; ctx.lineWidth=.58;
         ctx.beginPath(); quad.forEach(([x,y],k)=>k?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();ctx.fill();ctx.stroke();
       }
       if(visible && !paused && !preference.matches) frame=requestAnimationFrame(draw);

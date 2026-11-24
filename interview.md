@@ -65,3 +65,7 @@ The memory lab estimates KV-cache size from a demo configuration of 24 layers, 2
 ### What does the interactive trace show?
 
 The trace replays a synthetic request across tokenization, prefill, KV-cache allocation, decode, token streaming, and cache release. Its timeline can be scrubbed, played, paused, and inspected by selecting spans. The timing and token counts are demo values, clearly labeled as such; they are not captured from a running TurboLLM engine.
+
+### Why use a dark mint-and-lime visual system on the landing page?
+
+The darker palette makes the runtime diagrams and interactive panels feel like a local engineering console. Mint highlights inference paths and lime marks active controls. The hero adds a canvas-based tensor sculpture, orbit lines, and floating labels; sections enter as they scroll into view. The motion respects reduced-motion preferences and the demo data remains labeled as illustrative.

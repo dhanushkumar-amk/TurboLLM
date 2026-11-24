@@ -1,4 +1,5 @@
 import { Activity, Blocks, Database, Shield, Users } from "lucide-react";
+import { motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
@@ -38,13 +39,14 @@ const features = [
 
 export function Features() {
   return (
-    <section className="section features-section" id="approach" aria-labelledby="features-title">
+    <motion.section className="section features-section" id="approach" aria-labelledby="features-title" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: 0.65 }}>
       <p className="eyeline">What this project explores</p>
       <h2 id="features-title">A runtime you can inspect.</h2>
       <p className="features-intro">These are the engineering questions behind TurboLLM. Each capability will be implemented and measured as the roadmap progresses.</p>
       <div className="feature-grid">
-        {features.map((feature) => (
-          <Card key={feature.number} className={`feature-card ${feature.wide ?? ""}`}>
+        {features.map((feature, index) => (
+          <motion.div key={feature.number} className={`feature-reveal ${feature.wide ?? ""}`} initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-45px" }} transition={{ duration: 0.5, delay: index * 0.07 }}>
+          <Card className="feature-card">
             <CardContent className="feature-content">
               <div className={`feature-visual feature-visual-${feature.visual}`} aria-hidden="true">
                 {feature.visual === "flow" && <>
@@ -67,8 +69,9 @@ export function Features() {
               <div className="feature-copy"><span className="feature-number">{feature.number} / TURBOLLM</span><h3>{feature.title}</h3><p>{feature.text}</p></div>
             </CardContent>
           </Card>
+          </motion.div>
         ))}
       </div>
-    </section>
+    </motion.section>
   );
 }

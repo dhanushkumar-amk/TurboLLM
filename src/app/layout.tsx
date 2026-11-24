@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./landing.css";
+import "./redesign.css";
 
 export const metadata: Metadata = {
   title: "TurboLLM — The engine behind the answer",
