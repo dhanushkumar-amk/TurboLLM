@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "title": "HISTORICAL SMOKE BASELINE \u2014 NOT vLLM",
+  "created_at": "2026-11-24",
+  "workload": {
+    "description": "Previously recorded markdown summaries; independent short runs, not a matched serving benchmark",
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "dtype": "FP16",
+    "gpu": "NVIDIA GeForce RTX 3050 8GB",
+    "source": "benchmarks/local-baseline.md"
+  },
+  "runs": [
+    {
+      "engine": "Transformers",
+      "concurrency": 1,
+      "summary": {
+        "e2e_ms": {
+          "p50": 218.0,
+          "p95": null,
+          "p99": null
+        },
+        "output_tokens_per_sec": 36.7,
+        "requests_per_sec": null
+      },
+      "workload_id": "short_37_prompt_8_output"
+    },
+    {
+      "engine": "TurboLLM",
+      "concurrency": 1,
+      "summary": {
+        "e2e_ms": {
+          "p50": 258.0,
+          "p95": null,
+          "p99": null
+        },
+        "output_tokens_per_sec": 31.0,
+        "requests_per_sec": null
+      },
+      "workload_id": "short_37_prompt_8_output"
+    },
+    {
+      "engine": "Transformers",
+      "concurrency": 2,
+      "summary": {
+        "e2e_ms": {
+          "p50": 2771.0,
+          "p95": null,
+          "p99": null
+        },
+        "output_tokens_per_sec": 34.64,
+        "requests_per_sec": null
+      },
+      "workload_id": "long_67_prompt_96_output"
+    },
+    {
+      "engine": "TurboLLM",
+      "concurrency": 2,
+      "summary": {
+        "e2e_ms": {
+          "p50": 3471.0,
+          "p95": null,
+          "p99": null
+        },
+        "output_tokens_per_sec": 27.66,
+        "requests_per_sec": null
+      },
+      "workload_id": "long_67_prompt_96_output"
+    }
+  ],
+  "notes": [
+    "Historical measurements used different prompt/output workloads; do not compare rows as a matched test.",
+    "Only one TurboLLM single-request level was measured in these records.",
+    "No p95/p99, TTFT, ITL, goodput, GPU counters, or vLLM measurements were recorded."
+  ]
+}

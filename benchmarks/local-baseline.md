@@ -37,6 +37,31 @@ Four synthetic requests with prompt lengths 12, 16, 20, and 24 tokens each gener
 
 llama.cpp and vLLM comparisons remain unavailable; no results against them are claimed. Repeat measurements on idle hardware, record time-to-first-token and inter-token latency, and use representative workloads before drawing performance conclusions.
 
+## What a fair vLLM comparison must control
+
+Treat a comparison as valid only when these are recorded for **both** engines:
+
+1. **Same model artifact:** model ID and immutable revision, tokenizer revision/chat template, dtype/quantization, and any speculative decoding or custom kernel settings.
+2. **Same machine:** GPU model/count, VRAM, driver/CUDA, CPU/RAM, power limits, and whether another process is using the GPU. Run the engines separately on this single-GPU PC; do not load both model copies into 8 GB VRAM at once.
+3. **Same workload:** a fixed prompt set with short/medium/long prompt lengths, fixed output caps, greedy sampling, matching stop behavior, and the same arrival/concurrency pattern. Report prompt and generated token counts.
+4. **Repeatable protocol:** warm the model, run each load level at least five times, alternate engine order across repeats, and retain per-request raw data. Separate model load time from steady-state serving time.
+5. **Primary outcomes:** TTFT p50/p95/p99, per-output-token ITL p50/p95/p99, E2E p50/p95/p99, output tokens/sec, requests/sec, errors/timeouts, and SLO goodput. Pick and state TTFT/ITL SLO thresholds before looking at results.
+6. **Efficiency and quality:** peak/steady VRAM, GPU utilization, memory bandwidth and power sampled during the run; KV cache occupancy/prefix cache hit rate; cost per million tokens using the actual GPU-hour price; and a fixed quality evaluation/perplexity set. Quality must be checked when precision, quantization, kernels, or speculative decoding differ.
+
+The current `benchmark_serving.py` captures serving latency and throughput from OpenAI-compatible SSE endpoints. Its ITL is based on client-observed **text chunks**, so it is provisional when servers group multiple generated tokens in one chunk. For precise ITL, instrument token IDs/timestamps in each server. The endpoint runner currently accepts one fixed prompt; use multiple prompt-length buckets before publishing a result. GPU/MFU/MBU, cache hit rate, cost, and quality are separate measurements and must not be inferred from latency.
+
+### Run and export comparison images
+
+Start TurboLLM on port 8000 and vLLM on port 8001 with the same pinned Qwen2.5-0.5B-Instruct revision, dtype, and GPU settings. On an 8 GB RTX 3050, stop one engine before loading the other if both copies do not fit. Then run:
+
+```powershell
+python scripts/benchmark_serving.py --turbo-url http://127.0.0.1:8000 --vllm-url http://127.0.0.1:8001 --turbo-model turbo-llm --vllm-model Qwen/Qwen2.5-0.5B-Instruct --requests 50 --concurrency 1,2,4,8 --output-tokens 64
+python -m pip install matplotlib
+python scripts/render_benchmark_charts.py benchmarks/results/latest.json
+```
+
+The report and raw request CSV are written under `benchmarks/results/`. Image files are written to `benchmarks/results/charts/`: `latency_tails.png`, `throughput.png`, and `goodput_heatmap.png`. Repeat the measurement run after warming each engine; do not count startup/download time as request latency.
+
 ## Uncached decode smoke measurement
 
 Command: `python scripts/benchmark_reference.py --runs 1 --new-tokens 4 --dtype fp32 --cache off`

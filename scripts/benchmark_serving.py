@@ -113,6 +113,8 @@ def main() -> None:
     parser.add_argument("--prompt", default="Explain how a KV cache improves autoregressive inference in three concise bullet points.")
     parser.add_argument("--ttft-slo-ms", type=float, default=1000)
     parser.add_argument("--itl-slo-ms", type=float, default=100)
+    parser.add_argument("--gpu-hourly-cost", type=float, default=0,
+                        help="Actual GPU+host hourly cost in your billing currency; 0 leaves cost unavailable")
     parser.add_argument("--output", type=Path, default=Path("benchmarks/results/latest.json"))
     args = parser.parse_args()
     levels = [int(x) for x in args.concurrency.split(",")]
@@ -140,13 +142,21 @@ def main() -> None:
                     "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None}
     except ImportError:
         hardware = {"torch_version": None, "cuda_available": False, "gpu": None}
-    report = {"schema_version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
+    report = {"schema_version": 2, "created_at": datetime.now(timezone.utc).isoformat(),
               "hardware": hardware,
               "workload": {"requests_per_engine_per_level": args.requests,
                            "concurrency": levels, "output_tokens": args.output_tokens,
                            "prompt": args.prompt, "ttft_slo_ms": args.ttft_slo_ms,
                            "itl_slo_ms": args.itl_slo_ms,
+                           "gpu_hourly_cost": args.gpu_hourly_cost,
                            "endpoints": {"TurboLLM": args.turbo_url, "vLLM": args.vllm_url}},
+              "efficiency": {"gpu_utilization_percent": None,
+                             "memory_bandwidth_utilization_percent": None,
+                             "prefill_mfu_percent": None,
+                             "kv_cache_usage_percent": None,
+                             "prefix_cache_hit_rate_percent": None,
+                             "cost_per_million_tokens": None,
+                             "unavailable_reason": "Endpoint runner does not collect host GPU, MFU, or engine cache counters. Supply telemetry fields from the serving host; cost also needs an actual hourly cost."},
               "runs": results,
               "notes": ["Endpoint streaming measurements include server queueing and HTTP overhead.",
                         "ITL is derived from non-empty streamed text chunks; runtimes may emit multiple tokens per chunk.",
