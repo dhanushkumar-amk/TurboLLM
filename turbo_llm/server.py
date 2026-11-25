@@ -312,6 +312,10 @@ async def _stream_response(engine: Engine, request: ChatCompletionRequest, input
                      "choices": [{"index": 0, "delta": {"content": delta},
                                   "finish_reason": None}]}
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+        usage = {"prompt_tokens": int(input_ids.shape[1]),
+                 "completion_tokens": len(generated_ids),
+                 "total_tokens": int(input_ids.shape[1]) + len(generated_ids)}
+        yield f"data: {json.dumps({'choices': [], 'usage': usage})}\n\n"
         yield "data: [DONE]\n\n"
     finally:
         engine.active.pop(request_id, None)

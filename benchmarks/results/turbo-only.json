@@ -1,0 +1,419 @@
+{
+  "schema_version": 3,
+  "created_at": "2026-11-25T04:21:11.308149+00:00",
+  "hardware": {
+    "torch_version": "2.15.0+cu132",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 3050"
+  },
+  "workload": {
+    "requests_per_engine_per_level": 3,
+    "concurrency": [
+      1,
+      2
+    ],
+    "ttft_slo_ms": 1500.0,
+    "itl_slo_ms": 150.0,
+    "gpu_hourly_cost": 0,
+    "currency": "USD",
+    "endpoints": {
+      "TurboLLM": "http://127.0.0.1:8000",
+      "vLLM": null
+    },
+    "workloads": [
+      {
+        "name": "short-68-in-128-out",
+        "prompt_tokens": 68,
+        "output_tokens": 128
+      },
+      {
+        "name": "long-142-in-256-out",
+        "prompt_tokens": 142,
+        "output_tokens": 256
+      }
+    ],
+    "warmup_requests_per_level": 1
+  },
+  "efficiency": {
+    "gpu_utilization_percent": {
+      "TurboLLM": null
+    },
+    "memory_bandwidth_utilization_percent": {
+      "TurboLLM": null
+    },
+    "prefill_mfu_percent": {
+      "TurboLLM": null
+    },
+    "kv_cache_usage_percent": {
+      "TurboLLM": null
+    },
+    "prefix_cache_hit_rate_percent": {
+      "TurboLLM": null
+    },
+    "cost_per_million_tokens": null,
+    "unavailable_reason": "Endpoint runner does not collect host GPU, MFU, or engine cache counters. Supply telemetry fields from the serving host; cost also needs an actual hourly cost."
+  },
+  "runs": [
+    {
+      "engine": "TurboLLM",
+      "concurrency": 1,
+      "workload": "short-68-in-128-out",
+      "summary": {
+        "requests": 3,
+        "completed": 3,
+        "errors": 0,
+        "ttft_ms": {
+          "p50": 38.943,
+          "p95": 39.397,
+          "p99": 39.438
+        },
+        "e2e_ms": {
+          "p50": 4544.293,
+          "p95": 4674.429,
+          "p99": 4685.997
+        },
+        "tpot_ms": {
+          "p50": 35.483,
+          "p95": 36.497,
+          "p99": 36.587
+        },
+        "itl_mean_ms": {
+          "p50": 35.196,
+          "p95": 36.236,
+          "p99": 36.329
+        },
+        "itl_p95_ms": {
+          "p50": 38.636,
+          "p95": 40.933,
+          "p99": 41.137
+        },
+        "output_tokens_per_sec": 27.929,
+        "requests_per_sec": 0.218,
+        "goodput_requests_per_sec": 0.218,
+        "goodput_requests": 3,
+        "prompt_tokens": 204,
+        "output_tokens": 384,
+        "duration_s": 13.749
+      },
+      "requests": [
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 3.99000127799809e-05,
+          "ttft_s": 0.03944779999437742,
+          "e2e_s": 4.688888699980453,
+          "itl_mean_s": 0.03635177401574622,
+          "itl_p95_s": 0.04118784998427145,
+          "tpot_s": 0.036609770866032086,
+          "output_tokens": 128,
+          "prompt_tokens": 68,
+          "text": "Inference servers, also known as inference engines, are crucial components in the deployment of machine learning models. They process and execute the model's predictions, which are then used to make decisions or generate outputs. The process of inference involves several key components, including prefill, decode, and inference. Let's break down each of these components and compare them to understand how they work together.\n\n### 1. Prefill\nPrefill refers to the process of loading the model's parameters and weights into the inference server's memory. This is done before the model is executed, allowing the inference server to have access to the model's parameters and weights",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 4.689235800004099,
+          "ttft_s": 0.03894259998924099,
+          "e2e_s": 4.515219499997329,
+          "itl_mean_s": 0.034980217322815345,
+          "itl_p95_s": 0.03641705999616533,
+          "tpot_s": 0.03524627480321329,
+          "output_tokens": 128,
+          "prompt_tokens": 68,
+          "text": "Inference servers, also known as inference engines, are crucial components in the deployment of machine learning models. They process and execute the model's predictions, which are then used to make decisions or generate outputs. The process of inference involves several key components, including prefill, decode, and inference. Let's break down each of these components and compare them to understand how they work together.\n\n### 1. Prefill\nPrefill refers to the process of loading the model's parameters and weights into the inference server's memory. This is done before the model is executed, allowing the inference server to have access to the model's parameters and weights",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 9.204674300010083,
+          "ttft_s": 0.03799299997626804,
+          "e2e_s": 4.5442933999875095,
+          "itl_mean_s": 0.03519592440951117,
+          "itl_p95_s": 0.03863649000122678,
+          "tpot_s": 0.03548268031504914,
+          "output_tokens": 128,
+          "prompt_tokens": 68,
+          "text": "Inference servers, also known as inference engines, are crucial components in the deployment of machine learning models. They process and execute the model's predictions, which are then used to make decisions or generate outputs. The process of inference involves several key components, including prefill, decode, and inference. Let's break down each of these components and compare them to understand how they work together.\n\n### 1. Prefill\nPrefill refers to the process of loading the model's parameters and weights into the inference server's memory. This is done before the model is executed, allowing the inference server to have access to the model's parameters and weights",
+          "error": null
+        }
+      ]
+    },
+    {
+      "engine": "TurboLLM",
+      "concurrency": 2,
+      "workload": "short-68-in-128-out",
+      "summary": {
+        "requests": 3,
+        "completed": 3,
+        "errors": 0,
+        "ttft_ms": {
+          "p50": 4588.962,
+          "p95": 4698.824,
+          "p99": 4708.589
+        },
+        "e2e_ms": {
+          "p50": 9171.175,
+          "p95": 9219.028,
+          "p99": 9223.282
+        },
+        "tpot_ms": {
+          "p50": 36.08,
+          "p95": 36.411,
+          "p99": 36.44
+        },
+        "itl_mean_ms": {
+          "p50": 35.819,
+          "p95": 36.138,
+          "p99": 36.166
+        },
+        "itl_p95_ms": {
+          "p50": 39.654,
+          "p95": 41.617,
+          "p99": 41.791
+        },
+        "output_tokens_per_sec": 27.736,
+        "requests_per_sec": 0.217,
+        "goodput_requests_per_sec": 0.072,
+        "goodput_requests": 1,
+        "prompt_tokens": 204,
+        "output_tokens": 384,
+        "duration_s": 13.845
+      },
+      "requests": [
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 3.190001007169485e-05,
+          "ttft_s": 4.711030699982075,
+          "e2e_s": 9.224345199996606,
+          "itl_mean_s": 0.03525285748031547,
+          "itl_p95_s": 0.03965436000726185,
+          "tpot_s": 0.035537909448933314,
+          "output_tokens": 128,
+          "prompt_tokens": 68,
+          "text": "Inference servers, also known as inference engines, are crucial components in the deployment of machine learning models. They process and execute the model's predictions, which are then used to make decisions or generate outputs. The process of inference involves several key components, including prefill, decode, and inference. Let's break down each of these components and compare them to understand how they work together.\n\n### 1. Prefill\nPrefill refers to the process of loading the model's parameters and weights into the inference server's memory. This is done before the model is executed, allowing the inference server to have access to the model's parameters and weights",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 0.00011650001397356391,
+          "ttft_s": 0.04442329998710193,
+          "e2e_s": 4.673214899987215,
+          "itl_mean_s": 0.036173250393733,
+          "itl_p95_s": 0.04183507999987342,
+          "tpot_s": 0.036447177952756794,
+          "output_tokens": 128,
+          "prompt_tokens": 68,
+          "text": "Inference servers, also known as inference engines, are crucial components in the deployment of machine learning models. They process and execute the model's predictions, which are then used to make decisions or generate outputs. The process of inference involves several key components, including prefill, decode, and inference. Let's break down each of these components and compare them to understand how they work together.\n\n### 1. Prefill\nPrefill refers to the process of loading the model's parameters and weights into the inference server's memory. This is done before the model is executed, allowing the inference server to have access to the model's parameters and weights",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 4.6735537000058684,
+          "ttft_s": 4.5889616000058595,
+          "e2e_s": 9.171175099996617,
+          "itl_mean_s": 0.035819138582671196,
+          "itl_p95_s": 0.03832176999712828,
+          "tpot_s": 0.03608042125976974,
+          "output_tokens": 128,
+          "prompt_tokens": 68,
+          "text": "Inference servers, also known as inference engines, are crucial components in the deployment of machine learning models. They process and execute the model's predictions, which are then used to make decisions or generate outputs. The process of inference involves several key components, including prefill, decode, and inference. Let's break down each of these components and compare them to understand how they work together.\n\n### 1. Prefill\nPrefill refers to the process of loading the model's parameters and weights into the inference server's memory. This is done before the model is executed, allowing the inference server to have access to the model's parameters and weights",
+          "error": null
+        }
+      ]
+    },
+    {
+      "engine": "TurboLLM",
+      "concurrency": 1,
+      "workload": "long-142-in-256-out",
+      "summary": {
+        "requests": 3,
+        "completed": 3,
+        "errors": 0,
+        "ttft_ms": {
+          "p50": 44.322,
+          "p95": 47.994,
+          "p99": 48.32
+        },
+        "e2e_ms": {
+          "p50": 9753.942,
+          "p95": 9803.092,
+          "p99": 9807.461
+        },
+        "tpot_ms": {
+          "p50": 38.061,
+          "p95": 38.282,
+          "p99": 38.302
+        },
+        "itl_mean_ms": {
+          "p50": 37.929,
+          "p95": 38.097,
+          "p99": 38.112
+        },
+        "itl_p95_ms": {
+          "p50": 46.59,
+          "p95": 47.995,
+          "p99": 48.12
+        },
+        "output_tokens_per_sec": 26.724,
+        "requests_per_sec": 0.104,
+        "goodput_requests_per_sec": 0.104,
+        "goodput_requests": 3,
+        "prompt_tokens": 426,
+        "output_tokens": 768,
+        "duration_s": 28.738
+      },
+      "requests": [
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 4.1099992813542485e-05,
+          "ttft_s": 0.04432240000460297,
+          "e2e_s": 9.175078900007065,
+          "itl_mean_s": 0.035672652548950565,
+          "itl_p95_s": 0.039722259991685854,
+          "tpot_s": 0.03580688823530377,
+          "output_tokens": 256,
+          "prompt_tokens": 142,
+          "text": "Transformer Inference Service: A Comprehensive Analysis\n\nPrompt Prefill, Autoregressive Decode, Attention Computation, Key-Value Cache Allocation, GPU Memory Bandwidth, Batching, Queueing, Request Concurrency, Time to First Token, Inter-token Latency, and End-to-End Latency\n\n1. **Prompt Prefill**: This is the process of preloading a set of precomputed embeddings or tokens into the model's memory. This can significantly reduce the time required to generate a response, but it also increases the risk of model overfitting. The tradeoff is that prefilling can lead to higher latency and increased memory usage.\n\n2. **Autoregressive Decode**: This involves predicting the next token in a sequence based on the previous tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that autoregressive decoding can lead to higher accuracy but also higher latency.\n\n3. **Attention Computation**: This involves computing the attention weights between the input tokens and the output tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that attention computation can lead to higher accuracy but also higher latency.\n\n4. **Key-Value",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 9.175509699998656,
+          "ttft_s": 0.040383499988820404,
+          "e2e_s": 9.808553399983793,
+          "itl_mean_s": 0.038115478039253504,
+          "itl_p95_s": 0.046590380009729405,
+          "tpot_s": 0.03830654862743127,
+          "output_tokens": 256,
+          "prompt_tokens": 142,
+          "text": "Transformer Inference Service: A Comprehensive Analysis\n\nPrompt Prefill, Autoregressive Decode, Attention Computation, Key-Value Cache Allocation, GPU Memory Bandwidth, Batching, Queueing, Request Concurrency, Time to First Token, Inter-token Latency, and End-to-End Latency\n\n1. **Prompt Prefill**: This is the process of preloading a set of precomputed embeddings or tokens into the model's memory. This can significantly reduce the time required to generate a response, but it also increases the risk of model overfitting. The tradeoff is that prefilling can lead to higher latency and increased memory usage.\n\n2. **Autoregressive Decode**: This involves predicting the next token in a sequence based on the previous tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that autoregressive decoding can lead to higher accuracy but also higher latency.\n\n3. **Attention Computation**: This involves computing the attention weights between the input tokens and the output tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that attention computation can lead to higher accuracy but also higher latency.\n\n4. **Key-Value",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 18.984404499991797,
+          "ttft_s": 0.04840199998579919,
+          "e2e_s": 9.753942000010284,
+          "itl_mean_s": 0.037929143921663876,
+          "itl_p95_s": 0.0481512600032147,
+          "tpot_s": 0.0380609411765666,
+          "output_tokens": 256,
+          "prompt_tokens": 142,
+          "text": "Transformer Inference Service: A Comprehensive Analysis\n\nPrompt Prefill, Autoregressive Decode, Attention Computation, Key-Value Cache Allocation, GPU Memory Bandwidth, Batching, Queueing, Request Concurrency, Time to First Token, Inter-token Latency, and End-to-End Latency\n\n1. **Prompt Prefill**: This is the process of preloading a set of precomputed embeddings or tokens into the model's memory. This can significantly reduce the time required to generate a response, but it also increases the risk of model overfitting. The tradeoff is that prefilling can lead to higher latency and increased memory usage.\n\n2. **Autoregressive Decode**: This involves predicting the next token in a sequence based on the previous tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that autoregressive decoding can lead to higher accuracy but also higher latency.\n\n3. **Attention Computation**: This involves computing the attention weights between the input tokens and the output tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that attention computation can lead to higher accuracy but also higher latency.\n\n4. **Key-Value",
+          "error": null
+        }
+      ]
+    },
+    {
+      "engine": "TurboLLM",
+      "concurrency": 2,
+      "workload": "long-142-in-256-out",
+      "summary": {
+        "requests": 3,
+        "completed": 3,
+        "errors": 0,
+        "ttft_ms": {
+          "p50": 9402.352,
+          "p95": 9606.449,
+          "p99": 9624.591
+        },
+        "e2e_ms": {
+          "p50": 18555.023,
+          "p95": 18910.512,
+          "p99": 18942.111
+        },
+        "tpot_ms": {
+          "p50": 36.552,
+          "p95": 37.296,
+          "p99": 37.362
+        },
+        "itl_mean_ms": {
+          "p50": 36.42,
+          "p95": 37.155,
+          "p99": 37.22
+        },
+        "itl_p95_ms": {
+          "p50": 41.475,
+          "p95": 42.878,
+          "p99": 43.003
+        },
+        "output_tokens_per_sec": 27.291,
+        "requests_per_sec": 0.107,
+        "goodput_requests_per_sec": 0.036,
+        "goodput_requests": 1,
+        "prompt_tokens": 426,
+        "output_tokens": 768,
+        "duration_s": 28.141
+      },
+      "requests": [
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 3.4900003811344504e-05,
+          "ttft_s": 9.629126699990593,
+          "e2e_s": 18.950010900007328,
+          "itl_mean_s": 0.036419964313744474,
+          "itl_p95_s": 0.04147492998745292,
+          "tpot_s": 0.03655248705888916,
+          "output_tokens": 256,
+          "prompt_tokens": 142,
+          "text": "Transformer Inference Service: A Comprehensive Analysis\n\nPrompt Prefill, Autoregressive Decode, Attention Computation, Key-Value Cache Allocation, GPU Memory Bandwidth, Batching, Queueing, Request Concurrency, Time to First Token, Inter-token Latency, and End-to-End Latency\n\n1. **Prompt Prefill**: This is the process of preloading a set of precomputed embeddings or tokens into the model's memory. This can significantly reduce the time required to generate a response, but it also increases the risk of model overfitting. The tradeoff is that prefilling can lead to higher latency and increased memory usage.\n\n2. **Autoregressive Decode**: This involves predicting the next token in a sequence based on the previous tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that autoregressive decoding can lead to higher accuracy but also higher latency.\n\n3. **Attention Computation**: This involves computing the attention weights between the input tokens and the output tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that attention computation can lead to higher accuracy but also higher latency.\n\n4. **Key-Value",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 0.00012840001727454364,
+          "ttft_s": 0.05373219997272827,
+          "e2e_s": 9.585346299980301,
+          "itl_mean_s": 0.03723673254911167,
+          "itl_p95_s": 0.04303399000200442,
+          "tpot_s": 0.03737887882355911,
+          "output_tokens": 256,
+          "prompt_tokens": 142,
+          "text": "Transformer Inference Service: A Comprehensive Analysis\n\nPrompt Prefill, Autoregressive Decode, Attention Computation, Key-Value Cache Allocation, GPU Memory Bandwidth, Batching, Queueing, Request Concurrency, Time to First Token, Inter-token Latency, and End-to-End Latency\n\n1. **Prompt Prefill**: This is the process of preloading a set of precomputed embeddings or tokens into the model's memory. This can significantly reduce the time required to generate a response, but it also increases the risk of model overfitting. The tradeoff is that prefilling can lead to higher latency and increased memory usage.\n\n2. **Autoregressive Decode**: This involves predicting the next token in a sequence based on the previous tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that autoregressive decoding can lead to higher accuracy but also higher latency.\n\n3. **Attention Computation**: This involves computing the attention weights between the input tokens and the output tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that attention computation can lead to higher accuracy but also higher latency.\n\n4. **Key-Value",
+          "error": null
+        },
+        {
+          "engine": "TurboLLM",
+          "ok": true,
+          "start_offset_s": 9.585940599994501,
+          "ttft_s": 9.402352000004612,
+          "e2e_s": 18.555022500018822,
+          "itl_mean_s": 0.035763563921529,
+          "itl_p95_s": 0.039580090017989275,
+          "tpot_s": 0.03589282549025181,
+          "output_tokens": 256,
+          "prompt_tokens": 142,
+          "text": "Transformer Inference Service: A Comprehensive Analysis\n\nPrompt Prefill, Autoregressive Decode, Attention Computation, Key-Value Cache Allocation, GPU Memory Bandwidth, Batching, Queueing, Request Concurrency, Time to First Token, Inter-token Latency, and End-to-End Latency\n\n1. **Prompt Prefill**: This is the process of preloading a set of precomputed embeddings or tokens into the model's memory. This can significantly reduce the time required to generate a response, but it also increases the risk of model overfitting. The tradeoff is that prefilling can lead to higher latency and increased memory usage.\n\n2. **Autoregressive Decode**: This involves predicting the next token in a sequence based on the previous tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that autoregressive decoding can lead to higher accuracy but also higher latency.\n\n3. **Attention Computation**: This involves computing the attention weights between the input tokens and the output tokens. This can be computationally expensive, especially for long prompts, and can lead to higher latency. The tradeoff is that attention computation can lead to higher accuracy but also higher latency.\n\n4. **Key-Value",
+          "error": null
+        }
+      ]
+    }
+  ],
+  "quality": {
+    "exact_output_match_percent_by_workload": {
+      "short-68-in-128-out:C1": 100.0,
+      "short-68-in-128-out:C2": 100.0,
+      "long-142-in-256-out:C1": 100.0,
+      "long-142-in-256-out:C2": 100.0
+    },
+    "perplexity": null,
+    "eval_score": null,
+    "note": "Output consistency across repeated greedy requests is a runtime smoke check, not an accuracy evaluation."
+  },
+  "notes": [
+    "Endpoint streaming measurements include server queueing and HTTP overhead.",
+    "TPOT is estimated from TTFT-to-end duration divided by generated tokens; exact ITL requires token-ID timestamps, SSE chunk boundaries vary.",
+    "GPU counters, cost, KV hit rate, MFU, and quality require separate instrumentation/evaluation."
+  ],
+  "title": "TurboLLM-only serving benchmark"
+}

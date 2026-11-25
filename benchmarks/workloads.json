@@ -1,0 +1,12 @@
+[
+  {
+    "name": "short-68-in-128-out",
+    "prompt": "Explain how an inference server uses prefill and decode. Compare TTFT, token latency, batching, KV cache, and throughput. Give a concise technical answer for an engineer evaluating model serving.",
+    "output_tokens": 128
+  },
+  {
+    "name": "long-142-in-256-out",
+    "prompt": "You are evaluating a transformer inference service. Analyze how prompt prefill, autoregressive decode, attention computation, key-value cache allocation, GPU memory bandwidth, batching, queueing, request concurrency, time to first token, inter-token latency, and end-to-end latency interact. Explain the likely bottlenecks for short and long prompts, how to measure each bottleneck, what tradeoffs appear when increasing batch size, and how a service should choose an operating point using latency SLOs and goodput. Organize the answer with headings and avoid unsupported performance claims.",
+    "output_tokens": 256
+  }
+]

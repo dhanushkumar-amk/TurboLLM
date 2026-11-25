@@ -1,45 +1,47 @@
-﻿"use client";
-import {useState} from "react";
-import {motion, MotionConfig} from "motion/react";
-import {Activity, AudioLines, Boxes, Cpu, Pause, Play} from "lucide-react";
-import Sculpture from "@/components/sculpture";
-import { Features } from "@/components/features";
-import { DemoLab } from "@/components/demo-lab";
-import { AgentTrace, type TraceSpan } from "@/components/ui/agent-trace";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { Activity, ArrowDownRight, AudioLines, Cpu, Layers3, MemoryStick, Timer, Zap } from "lucide-react";
+import HomeBenchmarkCharts from "@/components/home-benchmark-charts";
+import "./home-v2.css";
 
-const stages=[
-  ["Prefill","Read the prompt","The model processes the prompt tokens together and stores their attention keys and values."],
-  ["Decode","Generate a token","Each step uses the cached context to score the vocabulary and select the next token."],
-  ["Schedule","Share the GPU","The scheduler groups requests and releases their cache blocks when generation ends."]
-];
-const milestones=["Match Hugging Face logits","Budget and page the KV cache","Batch concurrent requests","Profile and quantize","Serve and benchmark"];
-const traceSpans: TraceSpan[] = [
-  { id: "request", label: "generation_request", kind: "agent", start: 0, end: 10600, detail: "complete" },
-  { id: "tokenizer", parentId: "request", label: "tokenizer.encode", kind: "io", start: 0, end: 380, detail: "24 token IDs" },
-  { id: "prefill", parentId: "request", label: "model.prefill", kind: "model", start: 380, end: 2450, tokens: 24 },
-  { id: "cache", parentId: "prefill", label: "kv_cache.reserve", kind: "tool", start: 920, end: 1560, detail: "3 blocks" },
-  { id: "decode", parentId: "request", label: "model.decode", kind: "model", start: 2450, end: 10000, tokens: 32 },
-  { id: "scheduler", parentId: "request", label: "scheduler.slot", kind: "agent", start: 2620, end: 7600, detail: "slot 02" },
-  { id: "stream", parentId: "request", label: "stream.tokens", kind: "io", start: 2800, end: 9800, detail: "32 tokens" },
-  { id: "cleanup", parentId: "request", label: "kv_cache.release", kind: "tool", start: 10000, end: 10600, detail: "3 blocks freed" },
-];
+export const instant = false;
 
-export default function Home(){
-  const [paused,setPaused]=useState(false),[stage,setStage]=useState(0);
-  return <MotionConfig reducedMotion="user"><main id="top">
-    <header><a className="brand" href="#top"><AudioLines/> TurboLLM</a><nav><a href="#architecture">Architecture</a><a href="#approach">Approach</a><a href="#memory-lab">Memory lab</a><a href="#trace-lab">Trace</a><a href="#roadmap">Roadmap</a></nav><a className="navButton" href="/benchmark">Benchmark dashboard ↗</a></header>
-    <section className="hero"><div className="intro"><p className="eyeline"><i/> LOCAL INFERENCE / BUILT IN PUBLIC</p><h1>Inference,<br/><em>in full view.</em></h1><p className="lede">A ground-up PyTorch runtime for seeing how language models turn a prompt into a response, one operation and one byte at a time.</p><div className="hero-actions"><a className="cta" href="#architecture">Explore the engine <span>↘</span></a><a className="text-link" href="#roadmap">View the roadmap <span>↗</span></a></div><div className="hero-meta"><span><b>01</b> OPEN SYSTEMS STUDY</span><span><b>02</b> 8 GB GPU BUDGET</span></div></div>
-    <figure className="hero-stage"><div className="stage-topline"><span>FIG. 01 / TENSOR STUDY</span><span className="stage-live"><i/> LOCAL LAB</span></div><div className="stage-orbit stage-orbit-one"/><div className="stage-orbit stage-orbit-two"/><Sculpture paused={paused}/><div className="stage-chip stage-chip-one"><span>ATTENTION</span><b>Q ↔ K,V</b></div><div className="stage-chip stage-chip-two"><span>GENERATION</span><b>token <i>+</i> 001</b></div><figcaption><span>Transformer state / 3D study</span><button onClick={()=>setPaused(!paused)} aria-label={paused?"Animate sculpture":"Pause sculpture"}>{paused?<Play size={16}/>:<Pause size={16}/>}</button></figcaption></figure></section>
-    <div className="specs" id="lab"><span><Cpu/> <b>RTX 3050</b><small>LOCAL GPU</small></span><span><Boxes/> <b>8 GB</b><small>VRAM CONSTRAINT</small></span><span><Activity/> <b>PyTorch</b><small>REFERENCE RUNTIME</small></span></div>
-    <motion.section className="section" id="architecture" initial={false} whileInView={{y:[22,0],opacity:[.65,1]}} viewport={{once:true}}><p className="eyeline">Architecture study</p><h2>How a prompt becomes a token.</h2><div className="explorer"><div className="choices">{stages.map(([name],i)=><button key={name} aria-pressed={stage===i} onClick={()=>setStage(i)}>{name}</button>)}</div><div aria-live="polite"><motion.article key={stage} animate={{y:[8,0]}}><Layers/><h3>{stages[stage][1]}</h3><p>{stages[stage][2]}</p></motion.article></div></div></motion.section>
-    <Features />
-    <DemoLab />
-    <section className="section trace-section" id="trace-lab">
-      <div className="trace-heading"><div><p className="eyeline">Interactive trace / synthetic sample</p><h2>Replay the work behind a response.</h2></div><p>Scrub the timeline or select a span to inspect a sample request moving through tokenization, prefill, cache allocation, decode, and cleanup.</p></div>
-      <div className="trace-theme"><AgentTrace spans={traceSpans} runId="demo_a17f" model="small-model · demo" duration={10600} autoPlay loop speed={0.8} holdMs={1400} showTokens labelWidth={205} /></div>
-      <p className="trace-footnote">Synthetic timings and token counts for interface demonstration. TurboLLM does not produce these trace measurements yet.</p>
-    </section>
-    <section className="section" id="roadmap"><p className="eyeline">Development roadmap</p><h2>Building TurboLLM.</h2><ol>{milestones.map((name,i)=><motion.li key={name} whileInView={{x:[18,0],opacity:[.5,1]}} viewport={{once:true}}><span>Phase 0{i+1}</span>{name}</motion.li>)}</ol></section><footer><a className="brand" href="#top"><AudioLines/> TurboLLM</a><a href="#top">Back to top</a></footer>
-  </main></MotionConfig>;
+type Run = { engine: string; concurrency: number; workload: string; summary: Record<string, any> };
+type Report = { created_at: string; title?: string; hardware?: Record<string, any>; workload: Record<string, any>; runs: Run[]; quality?: Record<string, any> };
+
+async function getReport(): Promise<Report | null> {
+  try {
+    const file = path.join(process.cwd(), "benchmarks", "results", "latest.json");
+    return JSON.parse(await fs.readFile(file, "utf8")) as Report;
+  } catch { return null; }
 }
-function Layers(){return <Boxes size={36} strokeWidth={1.4} aria-hidden="true"/>;}
+
+export default async function Home() {
+  const report = await getReport();
+  const runs = report?.runs?.filter(run => run.engine === "TurboLLM") ?? [];
+  const ttft = median(runs.map(run => run.summary.ttft_ms?.p50));
+  const tokens = median(runs.map(run => run.summary.output_tokens_per_sec));
+  const matches = Object.values(report?.quality?.exact_output_match_percent_by_workload ?? {}).filter((v): v is number => typeof v === "number");
+  const matchRate = matches.length ? Math.min(...matches) : null;
+
+  return <main className="home-v2">
+    <header className="home-nav"><a className="home-brand" href="#top"><AudioLines size={22}/> TurboLLM</a><nav><a href="#runtime">Runtime</a><a href="#benchmark">Benchmark</a><a href="#method">Method</a></nav><a className="home-nav-cta" href="#benchmark">View this run <ArrowDownRight size={15}/></a></header>
+
+    <section className="home-hero" id="top"><div className="hero-copy"><p className="home-kicker"><i/> PYTORCH INFERENCE / MEASURED LOCALLY</p><h1>See what happens<br/>between <em>prompt</em><br/>and response.</h1><p className="home-lede">TurboLLM is a small inference runtime built to make model execution, memory, and serving performance easier to inspect.</p><div className="home-actions"><a className="home-primary" href="#benchmark">Explore benchmark <ArrowDownRight size={16}/></a><a className="home-secondary" href="#runtime">How the runtime works <span>↘</span></a></div><div className="home-runline"><span><i/> {report ? "LATEST LOCAL RUN" : "BENCHMARK READY"}</span><b>{report ? new Date(report.created_at).toLocaleDateString() : "Waiting for measurements"}</b></div></div>
+      <aside className="hero-proof"><div className="proof-top"><span>RUNTIME SNAPSHOT</span><span className="proof-tag">TURBOLLM ONLY</span></div><div className="proof-number"><strong>{ttft == null ? "—" : `${ttft.toFixed(0)}`}</strong><span>ms median TTFT</span></div><div className="proof-divider"/><div className="proof-stats"><div><span>Output rate</span><b>{tokens == null ? "—" : `${tokens.toFixed(1)} tok/s`}</b></div><div><span>Greedy repeat match</span><b>{matchRate == null ? "—" : `${matchRate}%`}</b></div></div><div className="proof-foot"><Cpu size={15}/>{report?.hardware?.gpu ?? "RTX 3050 · 8 GB"}<span>·</span> FP16</div><div className="proof-orbit proof-orbit-a"/><div className="proof-orbit proof-orbit-b"/></aside>
+    </section>
+
+    <section className="home-strip" aria-label="Runtime characteristics"><div><Layers3/><span><b>Prefill + decode</b><small>Inspect the generation path</small></span></div><div><MemoryStick/><span><b>KV cache aware</b><small>Track sequence memory</small></span></div><div><Activity/><span><b>Serving experiments</b><small>Measure latency under load</small></span></div><div><Zap/><span><b>Open implementation</b><small>Built in PyTorch</small></span></div></section>
+
+    <section className="home-section runtime-section" id="runtime"><div className="section-heading"><div><p className="home-kicker">01 / THE RUNTIME</p><h2>A readable path<br/>through inference.</h2></div><p>Follow the work a language model performs: process the prompt, retain attention state, then generate one token at a time.</p></div><div className="runtime-grid"><article><span>01</span><Timer/><h3>Prefill</h3><p>Process input tokens together and create the initial key/value state.</p><small>INPUT → CONTEXT</small></article><article><span>02</span><Layers3/><h3>Decode</h3><p>Reuse cached attention state to produce the next token at each step.</p><small>CONTEXT → TOKEN</small></article><article><span>03</span><Activity/><h3>Serve</h3><p>Measure real requests, queueing behavior, latency, and aggregate throughput.</p><small>TOKEN → RESPONSE</small></article></div></section>
+
+    <section className="home-section benchmark-section" id="benchmark"><div className="section-heading benchmark-heading"><div><p className="home-kicker">02 / LATEST BENCHMARK</p><h2>Performance, in context.</h2></div><div className="benchmark-context"><span>{report?.workload?.workloads?.length ?? 0} prompt sizes</span><i/> <span>{report?.workload?.concurrency?.length ?? 0} load levels</span><i/> <span>{report?.workload?.requests_per_engine_per_level ?? 0} requests / level</span></div></div>
+      {report && runs.length ? <><HomeBenchmarkCharts runs={runs}/><div className="benchmark-footnote"><span><i/> Measured TurboLLM endpoint · RTX 3050</span><p>Three measured requests per workload/load level after one warmup. p95/p99 are preliminary at this sample size. TPOT is estimated from streamed output duration. GPU, bandwidth, cache, and cost telemetry were not collected in this run.</p></div></> : <div className="benchmark-empty"><p>No TurboLLM run is recorded yet.</p><span>Start the local server, run <code>scripts/benchmark_serving.py</code>, and refresh this page to load its charts.</span></div>}
+    </section>
+
+    <section className="home-method" id="method"><div><p className="home-kicker">03 / HOW TO READ THIS</p><h2>Real measurements.<br/><em>Honest boundaries.</em></h2></div><div><p>Latency and throughput charts are populated from the latest local report. Missing GPU counters, cache hit rates, and cost are left out until the runtime exports those measurements.</p><a href="/benchmark">Open report details <span>↗</span></a></div></section>
+    <footer className="home-footer"><a className="home-brand" href="#top"><AudioLines size={20}/> TurboLLM</a><span>SMALL RUNTIME · CLEAR MEASUREMENTS</span><a href="#top">Back to top ↑</a></footer>
+  </main>;
+}
+
+function median(values: Array<number | null | undefined>) { const xs=values.filter((v):v is number=>typeof v==="number").sort((a,b)=>a-b); if(!xs.length)return null;const i=Math.floor(xs.length/2);return xs.length%2?xs[i]:(xs[i-1]+xs[i])/2; }

@@ -62,6 +62,15 @@ python scripts/render_benchmark_charts.py benchmarks/results/latest.json
 
 The report and raw request CSV are written under `benchmarks/results/`. Image files are written to `benchmarks/results/charts/`: `latency_tails.png`, `throughput.png`, and `goodput_heatmap.png`. Repeat the measurement run after warming each engine; do not count startup/download time as request latency.
 
+The serving runner also accepts a JSON workload matrix and runs warmups before each engine/workload/load-level measurement:
+
+```powershell
+python scripts/benchmark_serving.py --vllm-url http://127.0.0.1:8001 --vllm-model Qwen/Qwen2.5-0.5B-Instruct --turbo-model turbo-llm --workload-matrix benchmarks/workloads.json --requests 50 --warmup 5 --concurrency 1,2,4,8 --gpu-hourly-cost 0.50 --currency USD
+python scripts/render_benchmark_charts.py benchmarks/results/latest.json
+```
+
+`workloads.json` is a representative short/long workload shape, not an exact token-count fixture; chat templates change final prompt token counts, which the report records from server usage when available. TPOT is estimated from first streamed content through completion divided by generated tokens. This is useful as a serving estimate, but exact per-token ITL needs token-ID timestamps. The runner records exact output match rates for paired deterministic requests as a smoke-quality check; use a held-out evaluation set for accuracy/perplexity claims. GPU utilization, MBU, MFU, and KV cache metrics need engine/host telemetry integration; the runner leaves them unavailable rather than fabricating them.
+
 ## Uncached decode smoke measurement
 
 Command: `python scripts/benchmark_reference.py --runs 1 --new-tokens 4 --dtype fp32 --cache off`
